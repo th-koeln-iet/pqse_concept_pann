@@ -1,7 +1,7 @@
 from pqse_concept_pann.layers import AdmittanceLayer
 from pqse_concept_pann.tools.scaling import DimMinMaxScaler
 from pqse_concept_pann.tools.scaling import redistribute_values
-import tensorflow as tf
+
 
 class AdmittanceWeightedLayer(AdmittanceLayer):
     def __init__(self, y_mats, mask_indices=None, activation=None, redistribution_factor=50000,

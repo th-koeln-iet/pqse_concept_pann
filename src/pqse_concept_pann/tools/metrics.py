@@ -111,4 +111,3 @@ def validate_input_shapes(y_true, y_pred, axis):
     # Check if each axis value is valid
     if not all(0 <= a < y_true.ndim for a in axis):
         raise ValueError("All axis values must be valid for the input array.")
-

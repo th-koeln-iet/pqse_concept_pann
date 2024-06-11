@@ -1,7 +1,8 @@
+from typing import Sequence
+
 import numpy as np
 import tensorflow as tf
 import tensorflow.keras.layers as kl
-from typing import Sequence
 
 
 def match_shapes_by_repeating(arr: np.ndarray, target_shape: Sequence[int]) -> np.ndarray:
@@ -111,7 +112,6 @@ class AdmittanceLayer(kl.Layer):
             self.weight_initializer = kwargs['weight_initializer']
         else:
             self.weight_initializer = "uniform"
-
 
     def build(self, input_shape):
         if self.data_format == 'channels_last':

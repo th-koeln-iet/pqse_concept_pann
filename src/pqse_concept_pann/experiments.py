@@ -1,20 +1,22 @@
 import configparser
 import os
+import random
+
+import numpy as np
+import tensorflow as tf
+
 from evaluation.plot import evaluate, plot_heatmaps, plot_losses, plot_cdf
 from layers import AdjacencyPrunedLayer
-from tools import DimMinMaxScaler, SplitComplexMode, SplitComplexConverter, mean_absolute_error
 from models import DNN
 from models import PANN
 from models.callbacks import MinimalLossSaveModelCheckpoint, CyclicLR
 from preprocessing import read_data, add_measurement_noise
-import numpy as np
-import tensorflow as tf
-import random
+from tools import DimMinMaxScaler, SplitComplexMode, SplitComplexConverter, mean_absolute_error
 
 # Set random seed for reproducibility
 # full reproducibility also requires setting shuffle and use_multiprocessing to False in model fit
 np.random.seed(1)
-tf.set_random_seed(2)
+tf.random.set_seed(2)
 random.seed(3)
 
 config = configparser.ConfigParser()
@@ -24,8 +26,10 @@ config.read(os.path.join(config_path, 'config.ini'))
 data_path = os.path.abspath(os.path.join(config_path, os.path.expanduser(config['DEFAULT']['data_path'])))
 
 # Alter the following parameters
-EPOCHS = 0  # Epochs to train
+EPOCHS = 10  # Epochs to train
 USE_TRAINED_MODEL = True  # use existing weights of trained model?
+
+
 # If EPOCHS is set to a number > 0 and USE_TRAINED_MODEL is set, the model will continue training on the loaded weights
 
 
@@ -68,13 +72,14 @@ def exp_dnn_config():
         'activation': 'leaky_relu',
         'optimizer': 'adam',
         'learning_rate': 5e-4,
-        'layer_scaling_factor': 1, # set scaling factor to 2 to achieve the same amount of neurons per layer as in PANN
+        'layer_scaling_factor': 1,  # set scaling factor to 2 to achieve the same amount of neurons per layer as in PANN
         'epochs': EPOCHS,
         'skip_connections': True,
         'gaussian_noise': 0.00,  # standard deviation
         'batch_normalization': False,
     }
-    callbacks = [MinimalLossSaveModelCheckpoint(filepath=os.path.join(exp_path, 'weights', 'cp.ckpt'), grace_period=500, min_eps_percent=1e-3,
+    callbacks = [MinimalLossSaveModelCheckpoint(filepath=os.path.join(exp_path, 'weights', 'cp.ckpt'), grace_period=500,
+                                                min_eps_percent=1e-3,
                                                 monitor='val_loss', verbose=1),
                  CyclicLR(min_lr=hyperparams['learning_rate'] / 5, max_lr=hyperparams['learning_rate'] * 2,
                           step_size=200.)]
@@ -100,7 +105,8 @@ def exp_dnn_gauss_config():
         'gaussian_noise': 0.02,  # standard deviation
         'batch_normalization': False,
     }
-    callbacks = [MinimalLossSaveModelCheckpoint(filepath=os.path.join(exp_path, 'weights', 'cp.ckpt'), grace_period=500, min_eps_percent=1e-3,
+    callbacks = [MinimalLossSaveModelCheckpoint(filepath=os.path.join(exp_path, 'weights', 'cp.ckpt'), grace_period=500,
+                                                min_eps_percent=1e-3,
                                                 monitor='val_loss', verbose=1),
                  CyclicLR(min_lr=hyperparams['learning_rate'] / 5, max_lr=hyperparams['learning_rate'] * 2,
                           step_size=200.)]
@@ -126,7 +132,8 @@ def exp_pann_config():
         'gaussian_noise': 0.00,  # standard deviation
         'batch_normalization': False,
     }
-    callbacks = [MinimalLossSaveModelCheckpoint(filepath=os.path.join(exp_path, 'weights', 'cp.ckpt'), grace_period=500, min_eps_percent=1e-3,
+    callbacks = [MinimalLossSaveModelCheckpoint(filepath=os.path.join(exp_path, 'weights', 'cp.ckpt'), grace_period=500,
+                                                min_eps_percent=1e-3,
                                                 monitor='val_loss', verbose=1),
                  CyclicLR(min_lr=hyperparams['learning_rate'] / 5, max_lr=hyperparams['learning_rate'] * 2,
                           step_size=200.)]
@@ -152,7 +159,8 @@ def exp_pann_gauss_config():
         'gaussian_noise': 0.02,  # standard deviation
         'batch_normalization': False,
     }
-    callbacks = [MinimalLossSaveModelCheckpoint(filepath=os.path.join(exp_path, 'weights', 'cp.ckpt'), grace_period=500, min_eps_percent=1e-3,
+    callbacks = [MinimalLossSaveModelCheckpoint(filepath=os.path.join(exp_path, 'weights', 'cp.ckpt'), grace_period=500,
+                                                min_eps_percent=1e-3,
                                                 monitor='val_loss', verbose=1),
                  CyclicLR(min_lr=hyperparams['learning_rate'] / 5, max_lr=hyperparams['learning_rate'] * 2,
                           step_size=200.)]
@@ -182,7 +190,7 @@ def load_data():
     return data
 
 
-def compare_experiments(configs, data, measurement_noise=0.01, save_path = None):
+def compare_experiments(configs, data, measurement_noise=0.01, save_path=None):
     """
     Compare multiple experiments to each other
     :param configs: experiment configurations
@@ -249,4 +257,3 @@ if __name__ == '__main__':
     ### with input noise
     save_path = os.path.join(data_path, 'plots_noise_gauss')
     compare_experiments(gauss_model_configs, data, measurement_noise=0.01, save_path=save_path)
-

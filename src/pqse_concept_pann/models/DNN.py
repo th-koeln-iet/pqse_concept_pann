@@ -1,10 +1,10 @@
 import os
 import pickle
+import time
 
 import numpy as np
 import tensorflow as tf
 import tensorflow.keras.layers as kl
-import time
 from tensorflow.keras.models import Model
 
 
@@ -82,7 +82,6 @@ class DNN:
         self.skip_connections = hyperparams['skip_connections']
         self.gaussian_noise = hyperparams['gaussian_noise']
         self.batch_normalization = hyperparams['batch_normalization']
-
 
         self.scaler = network_data['scaler']  # output scaler, required for predictions
         self.Y_matrices_per_frequency = network_data['Y_matrices_per_frequency']
@@ -200,12 +199,12 @@ class DNN:
             old_history = {'loss': [], 'val_loss': []}
 
         history = model.fit(x=self.x_train_n,
-                        y=self.y_train_n,
-                        epochs=self.epochs,
-                        batch_size=self.batch_size,
-                        validation_data=(self.x_val_n, self.y_val_n),
-                        callbacks=self.callbacks,
-                        verbose=2)
+                            y=self.y_train_n,
+                            epochs=self.epochs,
+                            batch_size=self.batch_size,
+                            validation_data=(self.x_val_n, self.y_val_n),
+                            callbacks=self.callbacks,
+                            verbose=2)
 
         # Extend old history with the new history
         if 'loss' in history.history:

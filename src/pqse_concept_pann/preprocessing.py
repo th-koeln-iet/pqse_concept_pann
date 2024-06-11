@@ -3,10 +3,10 @@ import pickle
 from copy import deepcopy
 
 import numpy as np
-from tools.split_complex import SplitComplexMode
 from scipy import stats
 
 from tools import SplitComplexConverter
+from tools.split_complex import SplitComplexMode
 
 
 def read_data(data_path, network_data, input_converter: SplitComplexConverter = None,
