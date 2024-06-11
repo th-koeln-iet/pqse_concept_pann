@@ -7,6 +7,15 @@ from models import DNN
 from models import PANN
 from models.callbacks import MinimalLossSaveModelCheckpoint, CyclicLR
 from preprocessing import read_data, add_measurement_noise
+import numpy as np
+import tensorflow as tf
+import random
+
+# Set random seed for reproducibility
+# full reproducibility also requires setting shuffle and use_multiprocessing to False in model fit
+np.random.seed(1)
+tf.set_random_seed(2)
+random.seed(3)
 
 config = configparser.ConfigParser()
 config.sections()

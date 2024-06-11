@@ -244,25 +244,34 @@ def evaluate(predictions, data, save_path=None, show_plot=True):
     for key, value in predictions.items():
         y_preds[key] = cartesian_to_polar(value['y_pred'], axis=complex_axis)
     y_test = cartesian_to_polar(data['y_test'], axis=complex_axis)
-    ## plot estimations for one iteration
+    ## plot estimations for any iteration here
     plot_estimations_wrapper(predictions, data['grid_name'], data['y_test'], data['x_test'], data['mask_x_test'],
                              data['mask_y_test'],
-                             iteration=12, harmonic=1, save_path=save_path, show_plot=show_plot)
+                             iteration=1000, harmonic=1, save_path=save_path, show_plot=show_plot)
     plot_estimations_wrapper(predictions, data['grid_name'], data['y_test'], data['x_test'], data['mask_x_test'],
                              data['mask_y_test'],
-                             iteration=12, harmonic=7, save_path=save_path, show_plot=show_plot)
+                             iteration=1000, harmonic=5, save_path=save_path, show_plot=show_plot)
     plot_estimations_wrapper(predictions, data['grid_name'], data['y_test'], data['x_test'], data['mask_x_test'],
                              data['mask_y_test'],
-                             iteration=12, harmonic=9, save_path=save_path, show_plot=show_plot)
+                             iteration=1000, harmonic=7, save_path=save_path, show_plot=show_plot)
     plot_estimations_wrapper(predictions, data['grid_name'], data['y_test'], data['x_test'], data['mask_x_test'],
                              data['mask_y_test'],
-                             iteration=12, harmonic=13, save_path=save_path, show_plot=show_plot)
+                             iteration=1000, harmonic=9, save_path=save_path, show_plot=show_plot)
     plot_estimations_wrapper(predictions, data['grid_name'], data['y_test'], data['x_test'], data['mask_x_test'],
                              data['mask_y_test'],
-                             iteration=12, harmonic=15, save_path=save_path, show_plot=show_plot)
+                             iteration=1000, harmonic=13, save_path=save_path, show_plot=show_plot)
     plot_estimations_wrapper(predictions, data['grid_name'], data['y_test'], data['x_test'], data['mask_x_test'],
                              data['mask_y_test'],
-                             iteration=12, harmonic=17, save_path=save_path, show_plot=show_plot)
+                             iteration=1000, harmonic=15, save_path=save_path, show_plot=show_plot)
+    plot_estimations_wrapper(predictions, data['grid_name'], data['y_test'], data['x_test'], data['mask_x_test'],
+                             data['mask_y_test'],
+                             iteration=1000, harmonic=17, save_path=save_path, show_plot=show_plot)
+    plot_estimations_wrapper(predictions, data['grid_name'], data['y_test'], data['x_test'], data['mask_x_test'],
+                             data['mask_y_test'],
+                             iteration=1600, harmonic=1, save_path=save_path, show_plot=show_plot)
+    plot_estimations_wrapper(predictions, data['grid_name'], data['y_test'], data['x_test'], data['mask_x_test'],
+                             data['mask_y_test'],
+                             iteration=1600, harmonic=7, save_path=save_path, show_plot=show_plot)
 
 
 def plot_heatmaps(predictions, data, complex_axis=3, save_path=None, show_plot=True, magnitude_only=False):
