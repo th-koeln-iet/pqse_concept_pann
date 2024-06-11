@@ -26,7 +26,7 @@ config.read(os.path.join(config_path, 'config.ini'))
 data_path = os.path.abspath(os.path.join(config_path, os.path.expanduser(config['DEFAULT']['data_path'])))
 
 # Alter the following parameters
-EPOCHS = 10  # Epochs to train
+EPOCHS = 0  # Epochs to train
 USE_TRAINED_MODEL = True  # use existing weights of trained model?
 
 
@@ -253,7 +253,7 @@ if __name__ == '__main__':
     plot_heatmaps(predictions, data, complex_axis=3, save_path=save_path, show_plot=False,
                   magnitude_only=True)
     plot_losses(losses, save_path=save_path, show_plot=False)
-    thd_plots_wrapper(predictions['PANN']['y_pred'], data['y_test'], save_path=save_path, show_plot=False)
+    thd_plots_wrapper(predictions['PANN Gauss 0.02']['y_pred'], data['y_test'], save_path=save_path, show_plot=False)
 
     ### with input noise
     save_path = os.path.join(data_path, 'plots_noise_gauss')

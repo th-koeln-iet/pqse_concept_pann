@@ -69,8 +69,8 @@ def get_single_instance_split_axis(array_4d, freqs, axis=2, instance=0):
 def calculate_nrmse_per_frequency(data_true, data_hse, orders_to_evaluate, min_max_ref=False):
     list_return_nrmse_per_freq = []
     for order in orders_to_evaluate:
-        data_per_freq_true = data_true[:, order-1, :, :]
-        data_per_freq_est = data_hse[:, order-1, :, :]
+        data_per_freq_true = data_true[:, :, order-1, :]
+        data_per_freq_est = data_hse[:, :, order-1, :]
         # select bus by bus
         list_return_nrmse_per_bus = []
         for bus in range(0, 44):
@@ -78,8 +78,8 @@ def calculate_nrmse_per_frequency(data_true, data_hse, orders_to_evaluate, min_m
                 # 3rd order harmonics do not propagate into medium voltage level due to DYN-Transformers
                 list_return_nrmse_per_bus.append(0)
             elif bus != 6 and bus != 22 and bus != 28: # do not evaluate measured nodes
-                all_bus_values_true = data_per_freq_true[:, :, bus]
-                all_bus_values_est = data_per_freq_est[:, :, bus]
+                all_bus_values_true = data_per_freq_true[bus, :, :]
+                all_bus_values_est = data_per_freq_est[bus, :, :]
                 all_bus_values_true = [math.sqrt(d[0]**2 + d[1]**2) for d in all_bus_values_true]
                 all_bus_values_est = [math.sqrt(d[0]**2 + d[1]**2) for d in all_bus_values_est]
                 ref_on = 0
@@ -109,8 +109,8 @@ def calculate_mse_rmse_per_frequency(data_true, data_hse, orders_to_evaluate,
     base_scale_lv = other_ref_v*1/(400/math.sqrt(3)) if use_pu else 1
     base_scale_mv = other_ref_v*1/(20000/math.sqrt(3)) if use_pu else 0.4/20
     for order in orders_to_evaluate:
-        data_per_freq_true = data_true[:, order-1, :, :]
-        data_per_freq_est = data_hse[:, order-1, :, :]
+        data_per_freq_true = data_true[:, :, order-1, :]
+        data_per_freq_est = data_hse[:, :, order-1, :]
         # select bus by bus
         list_return_nrmse_per_bus = []
         deltas_per_order = []
@@ -119,8 +119,8 @@ def calculate_mse_rmse_per_frequency(data_true, data_hse, orders_to_evaluate,
                 scaler = base_scale_lv
                 if bus == 0 or bus == 20 or bus == 23 or bus == 1:
                     scaler = base_scale_mv
-                all_bus_values_true = data_per_freq_true[:, :, bus]
-                all_bus_values_est = data_per_freq_est[:, :, bus]
+                all_bus_values_true = data_per_freq_true[bus, :, :]
+                all_bus_values_est = data_per_freq_est[bus, :, :]
                 all_bus_values_true = [scaler * math.sqrt(d[0]**2 + d[1]**2) for d in all_bus_values_true]
                 all_bus_values_est = [scaler * math.sqrt(d[0]**2 + d[1]**2) for d in all_bus_values_est]
                 delta_per_bus = [all_bus_values_true[i] - all_bus_values_est[i] for i in range(len(all_bus_values_true))]
@@ -138,8 +138,8 @@ def calculate_nrmse_vthd(data_true, data_hse, orders_to_evaluate, min_max_ref=Fa
     # select bus by bus
     list_return_nrmse_per_bus = []
     for bus in range(0, 44):
-        all_bus_values_true = thd_per_bus_true[:, bus]
-        all_bus_values_est = thd_per_bus_est[:, bus]
+        all_bus_values_true = thd_per_bus_true[bus, :]
+        all_bus_values_est = thd_per_bus_est[bus, :]
         ref_on = 0
         if min_max_ref:
             ref_on = np.max(all_bus_values_true) - np.min(all_bus_values_true)
@@ -160,8 +160,8 @@ def calculate_thd(data_true, data_hse, orders_to_evaluate):
     :param orders_to_evaluate: Harmonic orders to evaluate
     :return:
     """
-    thd_per_bus_true = np.zeros((len(data_true), len(data_true[0, 0, 0])))
-    thd_per_bus_est = np.zeros((len(data_true), len(data_true[0, 0, 0])))
+    thd_per_bus_true = np.zeros((data_true.shape[0], data_true.shape[1]))
+    thd_per_bus_est = np.zeros((data_true.shape[0], data_true.shape[1]))
     # calculte thd for every state and and bus
     for state in range(len(data_true)):
 
@@ -169,12 +169,12 @@ def calculate_thd(data_true, data_hse, orders_to_evaluate):
             thd_denom_u_sqared_true = 0
             thd_denom_u_sqared_est = 0
             fundamental_squared_true = math.sqrt(
-                data_true[state, 0, 0, bus] ** 2 + data_true[state, 0, 1, bus] ** 2)
-            fundamental_squared_est = math.sqrt(data_hse[state, 0, 0, bus] ** 2 + data_hse[state, 0, 1, bus] ** 2)
+                data_true[state, bus, 0, 0] ** 2 + data_true[state, bus, 0, 1] ** 2)
+            fundamental_squared_est = math.sqrt(data_hse[state, bus, 0, 0] ** 2 + data_hse[state, bus, 0, 1] ** 2)
             for o in orders_to_evaluate:
-                val_true = math.sqrt(data_true[state, o - 1, 0, bus] ** 2 + data_true[state, o - 1, 1, bus] ** 2)
+                val_true = math.sqrt(data_true[state, bus, o - 1, 0] ** 2 + data_true[state, bus, o - 1, 1] ** 2)
                 thd_denom_u_sqared_true += (val_true ** 2)
-                val_est = math.sqrt(data_hse[state, o - 1, 0, bus] ** 2 + data_hse[state, o - 1, 1, bus] ** 2)
+                val_est = math.sqrt(data_hse[state, bus, o - 1, 0] ** 2 + data_hse[state, bus, o - 1, 1] ** 2)
                 thd_denom_u_sqared_est += (val_est ** 2)
             thd_per_bus_true[state, bus] = 100 * math.sqrt(thd_denom_u_sqared_true) / fundamental_squared_true
             thd_per_bus_est[state, bus] = 100 * math.sqrt(thd_denom_u_sqared_est) / fundamental_squared_est

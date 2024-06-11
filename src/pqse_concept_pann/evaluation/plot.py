@@ -394,7 +394,7 @@ def plot_thd_bus(data_true, data_hse, orders_to_evaluate, show_busses, save_path
     plt.tight_layout()
     if save_path is not None:
         os.makedirs(save_path, exist_ok=True)
-        plt.savefig('THD_busses.png')
+        plt.savefig(os.path.join(save_path, 'THD_busses.png'))
     if show_plot:
         plt.show()
     plt.close()
