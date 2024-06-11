@@ -1,0 +1,13 @@
+keras
+tensorflow==2.13.0
+pandas>=2.0.0
+tqdm
+numpy>=1.23.5
+matplotlib
+scipy
+seaborn
+pandapower
+scikit-learn
+openpyxl
+pydot # plot model
+scikeras
