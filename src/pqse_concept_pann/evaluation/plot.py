@@ -1,11 +1,15 @@
+import math
 import os
+from datetime import datetime, timedelta
 
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from pqse_concept_pann.evaluation.error import get_max_error_split_axis, get_mae_split_axis
+from pqse_concept_pann.evaluation.error import get_max_error_split_axis, get_mae_split_axis, calculate_thd, \
+    calculate_mse_rmse_per_frequency, calculate_nrmse_per_frequency
 from pqse_concept_pann.tools.split_complex import cartesian_to_polar
 
 
@@ -350,3 +354,63 @@ def plot_heatmap(dfs, df_titles, title="", drop50hz=False, save_path=None, show_
         plt.tight_layout()
         plt.show()
     plt.close()
+
+
+def plot_thd_bus(data_true, data_hse, orders_to_evaluate, show_busses, save_path=None, show_plot=True):
+    thd_per_bus_true, thd_per_bus_est = calculate_thd(data_true, data_hse, orders_to_evaluate)
+    start_day = 4
+    end_day = 5
+    # Create subplots
+    fig, axs = plt.subplots(len(show_busses), 1, figsize=(10, 8), sharex=True)
+    time_of_day_minutes = range(4 * 24 * (start_day - 1), 4 * 24 * (end_day - 1))  # time of day from 0 to 24 hours
+    start_time = datetime(2024, 1, 1)
+    time_of_day = [start_time + timedelta(minutes=tm * 15) for tm in
+                   time_of_day_minutes]  # time of day from 0 to 24 hours
+    for i, bus in enumerate(show_busses):
+        thd_data_true = thd_per_bus_true[time_of_day_minutes, bus]
+        thd_data_est = thd_per_bus_est[time_of_day_minutes, bus]
+
+        # Plotting the data for each subplot
+        axs[i].plot(time_of_day, thd_data_true, label='True')
+        axs[i].plot(time_of_day, thd_data_est, label='Est.')
+        axs[i].set_ylabel('$THD_{V} [\\%]$')
+        axs[i].legend()
+        axs[i].set_title('Busbar ' + str(bus))
+
+    axs[-1].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+    axs[-1].xaxis.set_major_locator(mdates.HourLocator(interval=1))
+    # Set x-axis limits
+    min_time = start_time + timedelta(minutes=(start_day - 1) * 24 * 60)  # start time
+    max_time = start_time + timedelta(minutes=(end_day - 1) * 24 * 60 - 1)  # end time
+
+    for ax in axs:
+        ax.set_xlim(min_time, max_time)
+
+    plt.xticks(rotation=45)
+    # Common x-axis label
+    plt.xlabel('time of day [HH:MM]')
+
+    # Adjust layout to prevent overlap
+    plt.tight_layout()
+    if save_path is not None:
+        os.makedirs(save_path, exist_ok=True)
+        plt.savefig('THD_busses.png')
+    if show_plot:
+        plt.show()
+    plt.close()
+
+
+def thd_plots_wrapper(y_true, y_pred, save_path=None, show_plot=True):
+    # RMSE plots
+    orders_to_evaluate_thd = list(range(1, 21))
+    plot_thd_bus(y_true, y_pred, orders_to_evaluate_thd, [16, 25, 37], save_path=save_path, show_plot=show_plot)
+    # nmrse_thd = calculate_nrmse_vthd(data['y_test'], data['y_pred'], orders_to_evaluate_thd)
+    orders_to_evaluate = [1, 3, 5, 7]
+    mse_results = calculate_mse_rmse_per_frequency(y_true, y_pred, orders_to_evaluate,
+                                                   True, True, 4160 / math.sqrt(3))
+    for order in range(len(orders_to_evaluate)):
+        print(f'maximum RMSE/MSE on order {orders_to_evaluate[order]}: {mse_results[order]}')
+
+    nrmse_results = calculate_nrmse_per_frequency(y_true, y_pred, orders_to_evaluate)
+    for order in range(len(orders_to_evaluate)):
+        print(f'maximum nRMSE on order {orders_to_evaluate[order]}: {max(nrmse_results[order])}')

@@ -5,7 +5,7 @@ import random
 import numpy as np
 import tensorflow as tf
 
-from evaluation.plot import evaluate, plot_heatmaps, plot_losses, plot_cdf
+from evaluation.plot import evaluate, plot_heatmaps, plot_losses, plot_cdf, thd_plots_wrapper
 from layers import AdjacencyPrunedLayer
 from models import DNN
 from models import PANN
@@ -253,6 +253,7 @@ if __name__ == '__main__':
     plot_heatmaps(predictions, data, complex_axis=3, save_path=save_path, show_plot=False,
                   magnitude_only=True)
     plot_losses(losses, save_path=save_path, show_plot=False)
+    thd_plots_wrapper(predictions['PANN']['y_pred'], data['y_test'], save_path=save_path, show_plot=False)
 
     ### with input noise
     save_path = os.path.join(data_path, 'plots_noise_gauss')
