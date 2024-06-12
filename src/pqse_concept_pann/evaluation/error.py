@@ -152,6 +152,7 @@ def calculate_nrmse_vthd(data_true, data_hse, orders_to_evaluate, min_max_ref=Fa
 
     return list_return_nrmse_per_bus
 
+
 def calculate_thd(data_true, data_hse, orders_to_evaluate):
     """
     Calculate the Total Harmonic Distortion (THD) for each bus

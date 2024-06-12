@@ -147,7 +147,7 @@ def plot_cdf(prediction_losses, label='MAPE', dashed_line_str='input noise', col
 
 
 def plot_estimations_wrapper(predictions, grid_name, y_test, x_test, mask_x_test, mask_y_test=None, iteration=1,
-                             harmonic=1, save_path=None, show_plot=True):
+                             input_noise=True, harmonic=1, save_path=None, show_plot=True):
     """
 
     :param predictions: dictionary of key <Model identifier> and value <predictions dict>
@@ -158,6 +158,7 @@ def plot_estimations_wrapper(predictions, grid_name, y_test, x_test, mask_x_test
     :param mask_y_test: mask indices of y_test, default None = all buses
     :param iteration: which iteration to plot
     :param harmonic: which harmonic to plot
+    :param input_noise: if measurement noise is added to the input, set to True to get accurate labels in plots
     :param save_path: if provided, plot will be saved at specified location
     :param show_plot: if True plot will be shown
     :return:
@@ -176,11 +177,11 @@ def plot_estimations_wrapper(predictions, grid_name, y_test, x_test, mask_x_test
     else:
         path = None
     plot_estimations(y_test_single_it, x_test_single_it, y_preds, title, mask_x_test, mask_y_test, save_path=path,
-                     show_plot=show_plot)
+                     show_plot=show_plot, input_noise=input_noise)
 
 
-def plot_estimations(y_test_polar, x_test_polar, y_pred_polar, title, mask_x_test, mask_y_test=None, save_path=None,
-                     show_plot=True):
+def plot_estimations(y_test_polar, x_test_polar, y_pred_polar, title, mask_x_test, mask_y_test=None, input_noise=True,
+                     save_path=None, show_plot=True):
     """
     Plot the true values, the predictions and the noiseful input for each bus.
     :param y_test_polar: true values
@@ -189,6 +190,7 @@ def plot_estimations(y_test_polar, x_test_polar, y_pred_polar, title, mask_x_tes
     :param title: Plot title
     :param mask_x_test: mask indices of x_test (i.e. measurement locations)
     :param mask_y_test: mask indices for y_test (i.e. true values), default None = all buses
+    :param input_noise: if True, noise is added to the input, then the label is changed in this method
     :param save_path: if provided, plot will be saved at specified location
     :param show_plot: if True plot will be shown
     :return:
@@ -210,7 +212,8 @@ def plot_estimations(y_test_polar, x_test_polar, y_pred_polar, title, mask_x_tes
 
     # Plotting x_test considering indices with outlined symbols
     if mask_x_test is not None:
-        plt.scatter(mask_x_test, x_test_polar, label='Noiseful input', facecolors='b', marker='x')
+        label = 'Noiseful Input' if input_noise else 'Input'
+        plt.scatter(mask_x_test, x_test_polar, label=label, facecolors='b', marker='x')
 
     # Setting x-axis and y-axis labels
     plt.xlabel('Bus Number')
@@ -233,11 +236,12 @@ def plot_estimations(y_test_polar, x_test_polar, y_pred_polar, title, mask_x_tes
     plt.close()
 
 
-def evaluate(predictions, data, save_path=None, show_plot=True):
+def evaluate(predictions, data, input_noise=True, save_path=None, show_plot=True):
     """
     Evaluate predictions
     :param predictions: dictionary of model predictions with model label as key and prediction data as value
     :param data: dictionary of network data
+    :param input_noise: if measurement noise is added to the input, set to True to get accurate labels in plots
     :param save_path: path to save plots to, default None
     :param show_plot: True if plots shall be shown
     :return:
@@ -249,33 +253,16 @@ def evaluate(predictions, data, save_path=None, show_plot=True):
         y_preds[key] = cartesian_to_polar(value['y_pred'], axis=complex_axis)
     y_test = cartesian_to_polar(data['y_test'], axis=complex_axis)
     ## plot estimations for any iteration here
+    ## to get the time of the day of a given iteration (in 24h format) calculate: (iteration % (4*24))/4
     plot_estimations_wrapper(predictions, data['grid_name'], data['y_test'], data['x_test'], data['mask_x_test'],
                              data['mask_y_test'],
-                             iteration=1000, harmonic=1, save_path=save_path, show_plot=show_plot)
+                             iteration=1026, harmonic=1, input_noise=input_noise, save_path=save_path, show_plot=show_plot)
     plot_estimations_wrapper(predictions, data['grid_name'], data['y_test'], data['x_test'], data['mask_x_test'],
                              data['mask_y_test'],
-                             iteration=1000, harmonic=5, save_path=save_path, show_plot=show_plot)
+                             iteration=1026, harmonic=7, input_noise=input_noise, save_path=save_path, show_plot=show_plot)
     plot_estimations_wrapper(predictions, data['grid_name'], data['y_test'], data['x_test'], data['mask_x_test'],
                              data['mask_y_test'],
-                             iteration=1000, harmonic=7, save_path=save_path, show_plot=show_plot)
-    plot_estimations_wrapper(predictions, data['grid_name'], data['y_test'], data['x_test'], data['mask_x_test'],
-                             data['mask_y_test'],
-                             iteration=1000, harmonic=9, save_path=save_path, show_plot=show_plot)
-    plot_estimations_wrapper(predictions, data['grid_name'], data['y_test'], data['x_test'], data['mask_x_test'],
-                             data['mask_y_test'],
-                             iteration=1000, harmonic=13, save_path=save_path, show_plot=show_plot)
-    plot_estimations_wrapper(predictions, data['grid_name'], data['y_test'], data['x_test'], data['mask_x_test'],
-                             data['mask_y_test'],
-                             iteration=1000, harmonic=15, save_path=save_path, show_plot=show_plot)
-    plot_estimations_wrapper(predictions, data['grid_name'], data['y_test'], data['x_test'], data['mask_x_test'],
-                             data['mask_y_test'],
-                             iteration=1000, harmonic=17, save_path=save_path, show_plot=show_plot)
-    plot_estimations_wrapper(predictions, data['grid_name'], data['y_test'], data['x_test'], data['mask_x_test'],
-                             data['mask_y_test'],
-                             iteration=1600, harmonic=1, save_path=save_path, show_plot=show_plot)
-    plot_estimations_wrapper(predictions, data['grid_name'], data['y_test'], data['x_test'], data['mask_x_test'],
-                             data['mask_y_test'],
-                             iteration=1600, harmonic=7, save_path=save_path, show_plot=show_plot)
+                             iteration=1026, harmonic=9, input_noise=input_noise, save_path=save_path, show_plot=show_plot)
 
 
 def plot_heatmaps(predictions, data, complex_axis=3, save_path=None, show_plot=True, magnitude_only=False):
@@ -299,18 +286,8 @@ def plot_heatmaps(predictions, data, complex_axis=3, save_path=None, show_plot=T
                      title=f"{key} MAE", drop50hz=True,
                      save_path=save_path, show_plot=show_plot)
 
-        df_titles = ['Real', 'Imaginary']
         # Max error plots
-        res_n = data['y_test_n'] - value['y_pred_n']
-        dfs = get_max_error_split_axis(data['y_test_n'], value['y_pred_n'], data['frequencies'],
-                                       feature_axis=complex_axis,
-                                       error_axis=0)
-        if magnitude_only:
-            dfs = (dfs[0],)
-        plot_heatmap(dfs, df_titles,
-                     title=f"{key} Max Error (Normalized)",
-                     save_path=save_path, show_plot=show_plot)
-        dfs = get_max_error_split_axis(data['y_test'], value['y_pred'], data['frequencies'], feature_axis=complex_axis,
+        dfs = get_max_error_split_axis(y_test_polar, y_pred_polar, data['frequencies'], feature_axis=complex_axis,
                                        error_axis=0)
         if magnitude_only:
             dfs = (dfs[0],)
@@ -402,7 +379,7 @@ def plot_thd_bus(data_true, data_hse, orders_to_evaluate, show_busses, save_path
 
 def thd_plots_wrapper(y_true, y_pred, save_path=None, show_plot=True):
     # RMSE plots
-    orders_to_evaluate_thd = list(range(1, 21))
+    orders_to_evaluate_thd = list(range(2, 21))
     plot_thd_bus(y_true, y_pred, orders_to_evaluate_thd, [16, 25, 37], save_path=save_path, show_plot=show_plot)
     # nmrse_thd = calculate_nrmse_vthd(data['y_test'], data['y_pred'], orders_to_evaluate_thd)
     orders_to_evaluate = [1, 3, 5, 7]

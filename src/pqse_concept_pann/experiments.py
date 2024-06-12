@@ -219,7 +219,9 @@ def compare_experiments(configs, data, measurement_noise=0.01, save_path=None):
                                        custom_layer=custom_layer, load_weights=load_weights)
         losses.update(loss)
         predictions.update(preds)
-    evaluate(predictions, data_updated, save_path=save_path, show_plot=False)
+
+    input_noise = True if measurement_noise else False
+    evaluate(predictions, data_updated, input_noise=input_noise, save_path=save_path, show_plot=False)
     # plot residual density
     mae = {}
     for key, value in predictions.items():
