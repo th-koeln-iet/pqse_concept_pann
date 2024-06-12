@@ -138,6 +138,7 @@ def plot_cdf(prediction_losses, label='MAPE', dashed_line_str='input noise', col
     else:
         plt.legend()
     plt.grid(True)
+    plt.tight_layout()
     if save_path is not None:
         os.makedirs(save_path, exist_ok=True)
         plt.savefig(os.path.join(save_path, f'cdf_{label}.png'))
@@ -310,6 +311,7 @@ def plot_heatmap(dfs, df_titles, title="", drop50hz=False, save_path=None, show_
     :param show_plot: if True plot will be shown
     :return:
     """
+    plt.rcParams.update({'font.size': 16})
     fig, axs = plt.subplots(nrows=len(dfs), figsize=(11.7, 8.27))
     for i, df in enumerate(dfs):
         if drop50hz:
@@ -320,6 +322,9 @@ def plot_heatmap(dfs, df_titles, title="", drop50hz=False, save_path=None, show_
             s = sns.heatmap(df, ax=axs[i])
         s.set(xlabel='Frequency', ylabel='Node', title=df_titles[i])
     fig.suptitle(title)
+    plt.yticks(rotation=0)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
     if save_path is not None:
         os.makedirs(save_path, exist_ok=True)
         if drop50hz:
@@ -328,7 +333,6 @@ def plot_heatmap(dfs, df_titles, title="", drop50hz=False, save_path=None, show_
             save_path = os.path.join(save_path, title + '.png')
         fig.savefig(save_path)
     if show_plot:
-        plt.tight_layout()
         plt.show()
     plt.close()
 
