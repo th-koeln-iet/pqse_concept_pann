@@ -274,7 +274,7 @@ def plot_heatmaps(predictions, data, complex_axis=3, save_path=None, show_plot=T
         y_test_polar = cartesian_to_polar(data['y_test'], axis=complex_axis)
         x_test_polar = cartesian_to_polar(data['x_test'], axis=complex_axis)
         res = y_test_polar - y_pred_polar
-        df_titles = ['Magnitude', 'Angle']
+        df_titles = ['Mean Absolute Error of Magnitude [V]', 'Mean Absolute Error of Angle']
         # MAE plots
         dfs = get_mae_split_axis(y_test_polar, y_pred_polar, data['frequencies'], feature_axis=complex_axis,
                                  error_axis=0)
@@ -290,6 +290,7 @@ def plot_heatmaps(predictions, data, complex_axis=3, save_path=None, show_plot=T
         # Max error plots
         dfs = get_max_error_split_axis(y_test_polar, y_pred_polar, data['frequencies'], feature_axis=complex_axis,
                                        error_axis=0)
+        df_titles = ['Maximum Absolute Error of Magnitude [V]', 'Maximum Absolute Error of Angle']
         if magnitude_only:
             dfs = (dfs[0],)
         plot_heatmap(dfs, df_titles,
@@ -320,8 +321,8 @@ def plot_heatmap(dfs, df_titles, title="", drop50hz=False, save_path=None, show_
             s = sns.heatmap(df, ax=axs)
         else:
             s = sns.heatmap(df, ax=axs[i])
-        s.set(xlabel='Frequency', ylabel='Node', title=df_titles[i])
-    fig.suptitle(title)
+        s.set(xlabel='Frequency [Hz]', ylabel='Node', title=df_titles[i])
+    # fig.suptitle(title)
     plt.yticks(rotation=0)
     plt.xticks(rotation=45)
     plt.tight_layout()
