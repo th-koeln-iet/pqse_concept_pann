@@ -7,7 +7,7 @@ The paper is currently in the review process. If you use any code or data provid
 All authors affiliated with  TH Köln - Cologned University of Applied Sciences, Germany.
 
 
-## Preparation
+## Replication of results
 To replicate the results of the paper follow these steps:
 
 - clone the linked repository
@@ -21,6 +21,8 @@ To replicate the results of the paper follow these steps:
 - If no pre-trained weights are used, you can train the model yourself. 
 
 The code provides methods for reading in and looking at the original data sets. Transformations such as scaling and conversion to other complex representations are done at a later stage.
+
+`experiments.py` provides examples of how to use the model and all experiments used for result and plot generation.
 
 ## Harmonic injections
 Harmonic injections were modeled using spectra injecting different amounts of harmonic currents at various frequencies.
@@ -43,4 +45,4 @@ The harmonic injections scale based on load or generation profiles for a full ye
 - "PV Inverter 33kW", source: doi: 10.2172/1894588
   - nodes: 9, 32, 35
 
-The harmonic spectra used are all part of EVs@Scale Next-Gen Profiles, US Dept. of Energy. 
+The harmonic spectra of electric vehicles used in this work were measured in the EVs@Scale Next-Gen Profiles, US Dept. of Energy. 
