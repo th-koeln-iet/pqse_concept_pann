@@ -1,6 +1,12 @@
 # Power Quality State Estimation for Distribution Grids based on Physics-Aware Neural Networks - Harmonic State Estimation [Code Repository]
 Code for the concept paper presenting physics-aware neural networks for power quality state estimation
 
+## Citing
+The paper is currently in the review process. If you use any code or data provided in this repository, please use the following and provide us with a copy of your contribution.
+```Mack, P., de Koster, M., Lehnen, P., Waffenschmidt, E., & Stadler, I. (2024). Power Quality State Estimation for Distribution Grids based on Physics-Aware Neural Networks - Harmonic State Estimation (1.0.0) [Code]. Github.```
+All authors affiliated with  TH Köln - Cologned University of Applied Sciences, Germany.
+
+
 ## Preparation
 To replicate the results of the paper follow these steps:
 
@@ -36,3 +42,5 @@ The harmonic injections scale based on load or generation profiles for a full ye
   - nodes: 16, 17, 37, 41, 42
 - "PV Inverter 33kW", source: doi: 10.2172/1894588
   - nodes: 9, 32, 35
+
+The harmonic spectra used are all part of EVs@Scale Next-Gen Profiles, US Dept. of Energy. 
