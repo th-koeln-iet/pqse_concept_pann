@@ -9,6 +9,8 @@ from evaluation.plot import evaluate, plot_heatmaps, plot_losses, plot_cdf, thd_
 from layers import AdjacencyPrunedLayer
 from models import DNN
 from models import PANN
+from models import Transformer
+from models import CNN
 from models.callbacks import MinimalLossSaveModelCheckpoint, CyclicLR
 from preprocessing import read_data, add_measurement_noise
 from tools import DimMinMaxScaler, SplitComplexMode, SplitComplexConverter, mean_absolute_error
@@ -26,7 +28,7 @@ config.read(os.path.join(config_path, 'config.ini'))
 data_path = os.path.abspath(os.path.join(config_path, os.path.expanduser(config['DEFAULT']['data_path'])))
 
 # Alter the following parameters
-EPOCHS = 0  # Epochs to train
+EPOCHS = 3000  # Epochs to train
 USE_TRAINED_MODEL = True  # use existing weights of trained model?
 
 
@@ -169,6 +171,64 @@ def exp_pann_gauss_config():
     return hyperparams, callbacks, model_class, custom_layer, exp_path, label
 
 
+def exp_transformer_config():
+    label = "Transformer"
+    exp_path = os.path.join(data_path, label)
+    hyperparams = {
+        'batch_size': int(16384 / 8),
+        'num_hidden_layers': 12,
+        'dropout': 0,
+        'loss_function': 'mse',
+        'activation': 'leaky_relu',
+        'optimizer': 'adam',
+        'learning_rate': 1e-4,
+        'layer_scaling_factor': 1, # set scaling factor to 2 to achieve the same amount of neurons per layer as in PANN
+        'epochs': EPOCHS,
+        'skip_connections': True,
+        'gaussian_noise': 0.00,  # standard deviation
+        'batch_normalization': False,
+        'ff_dim': 256,
+        'key_dim': 80,
+        'input_len': 44,
+        'num_heads': 8,
+    }
+    callbacks = [MinimalLossSaveModelCheckpoint(filepath=os.path.join(exp_path, 'weights', 'cp.ckpt'), grace_period=500,
+                                                min_eps_percent=1e-3,
+                                                monitor='val_loss', verbose=1),
+                 CyclicLR(min_lr=hyperparams['learning_rate'] / 100, max_lr=hyperparams['learning_rate'],
+                          step_size=200.)]
+    model_class = Transformer
+    custom_layer = None
+    return hyperparams, callbacks, model_class, custom_layer, exp_path, label
+
+
+def exp_cnn_config():
+    label = "CNN"
+    exp_path = os.path.join(data_path, label)
+    hyperparams = {
+        'batch_size': int(16384),
+        'num_hidden_layers': 3,
+        'dropout': 0,
+        'loss_function': 'mse',
+        'activation': 'leaky_relu',
+        'optimizer': 'adam',
+        'learning_rate': 5e-4,
+        'layer_scaling_factor': 1, # set scaling factor to 2 to achieve the same amount of neurons per layer as in PANN
+        'epochs': EPOCHS,
+        'skip_connections': True,
+        'gaussian_noise': 0.00,  # standard deviation
+        'batch_normalization': False,
+    }
+    callbacks = [MinimalLossSaveModelCheckpoint(filepath=os.path.join(exp_path, 'weights', 'cp.ckpt'), grace_period=500,
+                                                min_eps_percent=1e-3,
+                                                monitor='val_loss', verbose=1),
+                 CyclicLR(min_lr=hyperparams['learning_rate'] / 5, max_lr=hyperparams['learning_rate'] * 2,
+                          step_size=200.)]
+    model_class = CNN
+    custom_layer = None
+    return hyperparams, callbacks, model_class, custom_layer, exp_path, label
+
+
 def load_data():
     # Load data
     modes = [SplitComplexMode.CARTESIAN, SplitComplexMode.EXPONENTIAL]
@@ -238,7 +298,7 @@ if __name__ == '__main__':
 
     ## Base models
     save_path = os.path.join(data_path, 'plots')
-    base_model_configs = [exp_dnn_config(), exp_pann_config()]
+    base_model_configs = [exp_transformer_config()]  # [exp_dnn_config(), exp_pann_config()]
     predictions, losses = compare_experiments(base_model_configs, data, measurement_noise=None, save_path=save_path)
     plot_heatmaps(predictions, data, complex_axis=3, save_path=save_path, show_plot=False,
                   magnitude_only=True)
@@ -248,15 +308,15 @@ if __name__ == '__main__':
     save_path = os.path.join(data_path, 'plots_noise')
     compare_experiments(base_model_configs, data, measurement_noise=0.01, save_path=save_path)
 
-    ## Gaussian noise models
-    save_path = os.path.join(data_path, 'plots_gauss')
-    gauss_model_configs = [exp_dnn_gauss_config(), exp_pann_gauss_config()]
-    predictions, losses = compare_experiments(gauss_model_configs, data, measurement_noise=None, save_path=save_path)
-    plot_heatmaps(predictions, data, complex_axis=3, save_path=save_path, show_plot=False,
-                  magnitude_only=True)
-    plot_losses(losses, save_path=save_path, show_plot=False)
-    thd_plots_wrapper(predictions['PANN Gauss 0.02']['y_pred'], data['y_test'], save_path=save_path, show_plot=False)
-
-    ### with input noise
-    save_path = os.path.join(data_path, 'plots_noise_gauss')
-    compare_experiments(gauss_model_configs, data, measurement_noise=0.01, save_path=save_path)
+    # ## Gaussian noise models
+    # save_path = os.path.join(data_path, 'plots_gauss')
+    # gauss_model_configs = [exp_dnn_gauss_config(), exp_pann_gauss_config()]
+    # predictions, losses = compare_experiments(gauss_model_configs, data, measurement_noise=None, save_path=save_path)
+    # plot_heatmaps(predictions, data, complex_axis=3, save_path=save_path, show_plot=False,
+    #               magnitude_only=True)
+    # plot_losses(losses, save_path=save_path, show_plot=False)
+    # thd_plots_wrapper(predictions['PANN Gauss 0.02']['y_pred'], data['y_test'], save_path=save_path, show_plot=False)
+    #
+    # ### with input noise
+    # save_path = os.path.join(data_path, 'plots_noise_gauss')
+    # compare_experiments(gauss_model_configs, data, measurement_noise=0.01, save_path=save_path)
