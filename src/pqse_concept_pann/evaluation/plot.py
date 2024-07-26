@@ -8,8 +8,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from pqse_concept_pann.evaluation.error import get_max_error_split_axis, get_mae_split_axis, calculate_thd, \
-    calculate_mse_rmse_per_frequency, calculate_nrmse_per_frequency
+from pqse_concept_pann.evaluation.error import get_max_error_split_axis, get_mae_split_axis, calculate_thd
 from pqse_concept_pann.tools.split_complex import cartesian_to_polar
 
 
@@ -257,13 +256,16 @@ def evaluate(predictions, data, input_noise=True, save_path=None, show_plot=True
     ## to get the time of the day of a given iteration (in 24h format) calculate: (iteration % (4*24))/4
     plot_estimations_wrapper(predictions, data['grid_name'], data['y_test'], data['x_test'], data['mask_x_test'],
                              data['mask_y_test'],
-                             iteration=1026, harmonic=1, input_noise=input_noise, save_path=save_path, show_plot=show_plot)
+                             iteration=1026, harmonic=1, input_noise=input_noise, save_path=save_path,
+                             show_plot=show_plot)
     plot_estimations_wrapper(predictions, data['grid_name'], data['y_test'], data['x_test'], data['mask_x_test'],
                              data['mask_y_test'],
-                             iteration=1026, harmonic=7, input_noise=input_noise, save_path=save_path, show_plot=show_plot)
+                             iteration=1026, harmonic=7, input_noise=input_noise, save_path=save_path,
+                             show_plot=show_plot)
     plot_estimations_wrapper(predictions, data['grid_name'], data['y_test'], data['x_test'], data['mask_x_test'],
                              data['mask_y_test'],
-                             iteration=1026, harmonic=9, input_noise=input_noise, save_path=save_path, show_plot=show_plot)
+                             iteration=1026, harmonic=9, input_noise=input_noise, save_path=save_path,
+                             show_plot=show_plot)
 
 
 def plot_heatmaps(predictions, data, complex_axis=3, save_path=None, show_plot=True, magnitude_only=False):
@@ -284,7 +286,7 @@ def plot_heatmaps(predictions, data, complex_axis=3, save_path=None, show_plot=T
                      title=f"{key} MAE",
                      save_path=save_path, show_plot=show_plot)
         plot_heatmap(list(dfs), df_titles,
-                     title=f"{key} MAE", drop50hz=True,
+                     title=f"{key} MAE", drop_fundamental=True,
                      save_path=save_path, show_plot=show_plot)
 
         # Max error plots
@@ -297,17 +299,17 @@ def plot_heatmaps(predictions, data, complex_axis=3, save_path=None, show_plot=T
                      title=f"{key} Max Error",
                      save_path=save_path, show_plot=show_plot)
         plot_heatmap(dfs, df_titles,
-                     title=f"{key} Max Error", drop50hz=True,
+                     title=f"{key} Max Error", drop_fundamental=True,
                      save_path=save_path, show_plot=show_plot)
 
 
-def plot_heatmap(dfs, df_titles, title="", drop50hz=False, save_path=None, show_plot=True):
+def plot_heatmap(dfs, df_titles, title="", drop_fundamental=False, save_path=None, show_plot=True):
     """
     Plot dataframes of shape (batch, frequencies, nodes) as heatmaps
     :param dfs: list of pandas dataframes
     :param df_titles: list of strings, titles for each dataframe
     :param title:
-    :param drop50hz: if True 50Hz is dropped
+    :param drop_fundamental: if True fundamental frequency is dropped
     :param save_path: if provided, plot will be saved at specified location
     :param show_plot: if True plot will be shown
     :return:
@@ -315,8 +317,10 @@ def plot_heatmap(dfs, df_titles, title="", drop50hz=False, save_path=None, show_
     plt.rcParams.update({'font.size': 16})
     fig, axs = plt.subplots(nrows=len(dfs), figsize=(11.7, 8.27))
     for i, df in enumerate(dfs):
-        if drop50hz:
-            df = df.drop(50, axis=1)
+        if drop_fundamental:
+            column_max_val = df.max().idxmax()
+            if np.isclose(float(column_max_val), 50, rtol=1e-3) or np.isclose(float(column_max_val), 60, rtol=1e-3):
+                df = df.drop(column_max_val, axis=1)
         if len(dfs) == 1:
             s = sns.heatmap(df, ax=axs)
         else:
@@ -328,8 +332,8 @@ def plot_heatmap(dfs, df_titles, title="", drop50hz=False, save_path=None, show_
     plt.tight_layout()
     if save_path is not None:
         os.makedirs(save_path, exist_ok=True)
-        if drop50hz:
-            save_path = os.path.join(save_path, title + "_drop50_" + '.png')
+        if drop_fundamental:
+            save_path = os.path.join(save_path, title + "_drop-fund_" + '.png')
         else:
             save_path = os.path.join(save_path, title + '.png')
         fig.savefig(save_path)
@@ -338,8 +342,9 @@ def plot_heatmap(dfs, df_titles, title="", drop50hz=False, save_path=None, show_
     plt.close()
 
 
-def plot_thd_bus(data_true, data_hse, orders_to_evaluate, show_busses, save_path=None, show_plot=True):
-    thd_per_bus_true, thd_per_bus_est = calculate_thd(data_true, data_hse, orders_to_evaluate)
+def plot_thd_bus(y_true, y_pred, orders_to_evaluate, show_busses, save_path=None, show_plot=True):
+    thd_true = calculate_thd(y_true, orders_to_evaluate)
+    thd_est = calculate_thd(y_pred, orders_to_evaluate)
     start_day = 4
     end_day = 5
     # Create subplots
@@ -349,8 +354,8 @@ def plot_thd_bus(data_true, data_hse, orders_to_evaluate, show_busses, save_path
     time_of_day = [start_time + timedelta(minutes=tm * 15) for tm in
                    time_of_day_minutes]  # time of day from 0 to 24 hours
     for i, bus in enumerate(show_busses):
-        thd_data_true = thd_per_bus_true[time_of_day_minutes, bus]
-        thd_data_est = thd_per_bus_est[time_of_day_minutes, bus]
+        thd_data_true = thd_true[time_of_day_minutes, bus]
+        thd_data_est = thd_est[time_of_day_minutes, bus]
 
         # Plotting the data for each subplot
         axs[i].plot(time_of_day, thd_data_true, label='True')
@@ -380,19 +385,3 @@ def plot_thd_bus(data_true, data_hse, orders_to_evaluate, show_busses, save_path
     if show_plot:
         plt.show()
     plt.close()
-
-
-def thd_plots_wrapper(y_true, y_pred, save_path=None, show_plot=True):
-    # RMSE plots
-    orders_to_evaluate_thd = list(range(2, 21))
-    plot_thd_bus(y_true, y_pred, orders_to_evaluate_thd, [16, 25, 37], save_path=save_path, show_plot=show_plot)
-    # nmrse_thd = calculate_nrmse_vthd(data['y_test'], data['y_pred'], orders_to_evaluate_thd)
-    orders_to_evaluate = [1, 3, 5, 7]
-    mse_results = calculate_mse_rmse_per_frequency(y_true, y_pred, orders_to_evaluate,
-                                                   True, True, 4160 / math.sqrt(3))
-    for order in range(len(orders_to_evaluate)):
-        print(f'maximum RMSE/MSE on order {orders_to_evaluate[order]}: {mse_results[order]}')
-
-    nrmse_results = calculate_nrmse_per_frequency(y_true, y_pred, orders_to_evaluate)
-    for order in range(len(orders_to_evaluate)):
-        print(f'maximum nRMSE on order {orders_to_evaluate[order]}: {max(nrmse_results[order])}')
