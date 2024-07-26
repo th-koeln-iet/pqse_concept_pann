@@ -45,5 +45,3 @@ class CNN(DNN):
         model.compile(optimizer=optimizer,
                       loss=self.loss_function)
         return model
-
-

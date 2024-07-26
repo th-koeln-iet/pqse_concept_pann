@@ -11,7 +11,7 @@ class PositionalEncodingLayer(tf.keras.layers.Layer):
     def get_positional_encoding(self, input_len, key_dim):
         pos = np.arange(input_len)[:, np.newaxis]
         i = np.arange(key_dim)[np.newaxis, :]
-        angle_rads = pos / np.power(10000, (2 * (i//2)) / np.float32(key_dim))
+        angle_rads = pos / np.power(10000, (2 * (i // 2)) / np.float32(key_dim))
 
         sines = np.sin(angle_rads[:, 0::2])
         cosines = np.cos(angle_rads[:, 1::2])
@@ -80,5 +80,3 @@ class Transformer(DNN):
         model.compile(optimizer=optimizer,
                       loss=self.loss_function)
         return model
-
-

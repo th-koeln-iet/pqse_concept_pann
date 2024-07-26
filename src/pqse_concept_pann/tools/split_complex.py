@@ -69,8 +69,8 @@ class SplitComplexConverter:
         return res
 
 
-def cartesian_to_polar(arr: np.ndarray, axis: int = 2, real_index = 0,
-                       imag_index = 1, angle_type: str = 'radians'):
+def cartesian_to_polar(arr: np.ndarray, axis: int = 2, real_index=0,
+                       imag_index=1, angle_type: str = 'radians'):
     """
     Convert a nD array from Cartesian coordinates (real, imaginary) to polar coordinates (magnitude, phase).
     Indices not chosen in real_index and imag_index will be kept as they are.
@@ -109,7 +109,7 @@ def cartesian_to_polar(arr: np.ndarray, axis: int = 2, real_index = 0,
     return polar_arr
 
 
-def polar_to_cartesian(arr, axis=2, mag_index = 0, phase_index = 1,
+def polar_to_cartesian(arr, axis=2, mag_index=0, phase_index=1,
                        angle_type: str = 'radians'):
     """
     Convert a nD array from polar coordinates (magnitude, phase) to Cartesian coordinates (real, imaginary),
