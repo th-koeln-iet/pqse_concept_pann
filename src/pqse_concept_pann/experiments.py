@@ -67,7 +67,7 @@ def state_estimation(hyperparams: dict, network_data: dict, model_class, callbac
 
 def exp_dnn_config():
     label = "DNN"
-    exp_path = os.path.join(data_path, label)
+    exp_path = os.path.join(data_path, GRID, label)
     hyperparams = {
         'batch_size': 16384,
         'num_hidden_layers': 2,
@@ -75,7 +75,7 @@ def exp_dnn_config():
         'loss_function': 'mse',
         'activation': 'leaky_relu',
         'optimizer': 'adam',
-        'learning_rate': 5e-4,
+        'learning_rate': 5e-5,
         'layer_scaling_factor': 1,  # set scaling factor to 2 to achieve the same amount of neurons per layer as in PANN
         'epochs': EPOCHS,
         'skip_connections': True,
@@ -94,7 +94,7 @@ def exp_dnn_config():
 
 def exp_dnn_gauss_config():
     label = "DNN Gauss 0.02"
-    exp_path = os.path.join(data_path, label)
+    exp_path = os.path.join(data_path, GRID, label)
     hyperparams = {
         'batch_size': 16384,
         'num_hidden_layers': 2,
@@ -102,7 +102,7 @@ def exp_dnn_gauss_config():
         'loss_function': 'mse',
         'activation': 'leaky_relu',
         'optimizer': 'adam',
-        'learning_rate': 5e-4,
+        'learning_rate': 5e-5,
         'layer_scaling_factor': 1,
         'epochs': EPOCHS,
         'skip_connections': True,
@@ -121,7 +121,7 @@ def exp_dnn_gauss_config():
 
 def exp_pann_config():
     label = "PANN"
-    exp_path = os.path.join(data_path, label)
+    exp_path = os.path.join(data_path, GRID, label)
     hyperparams = {
         'batch_size': 16384,
         'num_hidden_layers': 6 if GRID == 'cigrelv' else 5,
@@ -129,7 +129,7 @@ def exp_pann_config():
         'loss_function': 'mse',
         'activation': 'leaky_relu',
         'optimizer': 'adam',
-        'learning_rate': 5e-4,
+        'learning_rate': 5e-5,
         'layer_scaling_factor': 1,
         'epochs': EPOCHS,
         'skip_connections': True,
@@ -148,7 +148,7 @@ def exp_pann_config():
 
 def exp_pann_gauss_config():
     label = "PANN Gauss 0.02"
-    exp_path = os.path.join(data_path, label)
+    exp_path = os.path.join(data_path, GRID, label)
     hyperparams = {
         'batch_size': 16384,
         'num_hidden_layers': 6 if GRID == 'cigrelv' else 5,
@@ -156,7 +156,7 @@ def exp_pann_gauss_config():
         'loss_function': 'mse',
         'activation': 'leaky_relu',
         'optimizer': 'adam',
-        'learning_rate': 5e-4,
+        'learning_rate': 5e-5,
         'layer_scaling_factor': 1,
         'epochs': EPOCHS,
         'skip_connections': True,
@@ -175,15 +175,15 @@ def exp_pann_gauss_config():
 
 def exp_transformer_config():
     label = "Transformer"
-    exp_path = os.path.join(data_path, label)
+    exp_path = os.path.join(data_path, GRID, label)
     hyperparams = {
-        'batch_size': int(16384 / 8),  # batch size limited by GPU memory size
+        'batch_size': int(16384 / 16),  # batch size limited by GPU memory size
         'num_hidden_layers': 12,
         'dropout': 0,
         'loss_function': 'mse',
         'activation': 'leaky_relu',
         'optimizer': 'adam',
-        'learning_rate': 1e-4,
+        'learning_rate': 1e-5,
         'layer_scaling_factor': 1,
         'epochs': EPOCHS,
         'skip_connections': True,
@@ -206,7 +206,7 @@ def exp_transformer_config():
 
 def exp_cnn_config():
     label = "CNN"
-    exp_path = os.path.join(data_path, label)
+    exp_path = os.path.join(data_path, GRID, label)
     hyperparams = {
         'batch_size': 16384,
         'num_hidden_layers': 3,
@@ -214,7 +214,7 @@ def exp_cnn_config():
         'loss_function': 'mse',
         'activation': 'leaky_relu',
         'optimizer': 'adam',
-        'learning_rate': 5e-4,
+        'learning_rate': 5e-5,
         'layer_scaling_factor': 1,  # set scaling factor to 2 to achieve the same amount of neurons per layer as in PANN
         'epochs': EPOCHS,
         'skip_connections': True,
@@ -318,19 +318,19 @@ if __name__ == '__main__':
 
     # Run experiments
     ## Base models
-    save_path = os.path.join(data_path, 'plots')
-    base_model_configs = [exp_transformer_config(), exp_dnn_config(), exp_pann_config()]
+    save_path = os.path.join(data_path, GRID, 'plots')
+    base_model_configs = [exp_dnn_config(), exp_pann_config()] # exp_transformer_config()
     predictions, losses = compare_experiments(base_model_configs, data, measurement_noise=None, save_path=save_path)
     plot_heatmaps(predictions, data, complex_axis=3, save_path=save_path, show_plot=False,
                   magnitude_only=True)
     plot_losses(losses, save_path=save_path, show_plot=False)
 
     ### with input noise
-    save_path = os.path.join(data_path, 'plots_noise')
+    save_path = os.path.join(data_path, GRID, 'plots_noise')
     compare_experiments(base_model_configs, data, measurement_noise=0.01, save_path=save_path)
 
     # ## Gaussian noise models
-    save_path = os.path.join(data_path, 'plots_gauss')
+    save_path = os.path.join(data_path, GRID, 'plots_gauss')
     gauss_model_configs = [exp_dnn_gauss_config(), exp_pann_gauss_config()]
     predictions, losses = compare_experiments(gauss_model_configs, data, measurement_noise=None, save_path=save_path)
     plot_heatmaps(predictions, data, complex_axis=3, save_path=save_path, show_plot=False,
@@ -344,5 +344,5 @@ if __name__ == '__main__':
                                base_kvs=base_kvs)
 
     ### with input noise
-    save_path = os.path.join(data_path, 'plots_noise_gauss')
+    save_path = os.path.join(data_path, GRID, 'plots_noise_gauss')
     compare_experiments(gauss_model_configs, data, measurement_noise=0.01, save_path=save_path)
