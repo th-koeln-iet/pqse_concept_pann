@@ -260,7 +260,7 @@ def load_data_ieee33():
     For the IEEE33 grid all preprocessing is already complete, measurement nodes are [2, 12, 28] (0-indexed)
     """
     import pickle
-    with open(os.path.join(data_path, 'ieee33_data.pic'), 'rb') as f:
+    with open(os.path.join(data_path, 'ieee33', 'ieee33_data.pic'), 'rb') as f:
         data = pickle.load(f)
     return data
 
