@@ -1,5 +1,6 @@
 import configparser
 import os
+import pickle
 import random
 
 import numpy as np
@@ -32,7 +33,7 @@ data_path = os.path.abspath(os.path.join(config_path, os.path.expanduser(config[
 EPOCHS = 3000  # Epochs to train
 USE_TRAINED_MODEL = False  # use existing weights of trained model?
 GRID = "ieee33"  # or "cigrelv"
-
+# GRID = "cigrelv"
 
 # If EPOCHS is set to a number > 0 and USE_TRAINED_MODEL is set, the model will continue training on the loaded weights
 
@@ -185,7 +186,7 @@ def exp_transformer_config():
         'optimizer': 'adam',
         'learning_rate': 1e-5,
         'layer_scaling_factor': 1,
-        'epochs': EPOCHS,
+        'epochs': int(EPOCHS / 8), # more gradient updates due to smaller batch size --> reduce amount of epochs
         'skip_connections': True,
         'gaussian_noise': 0.00,  # standard deviation
         'batch_normalization': False,
@@ -319,24 +320,26 @@ if __name__ == '__main__':
     # Run experiments
     ## Base models
     save_path = os.path.join(data_path, GRID, 'plots')
-    base_model_configs = [exp_dnn_config(), exp_pann_config()] # exp_transformer_config()
+    base_model_configs = [exp_cnn_config(), exp_transformer_config()]  # exp_transformer_config()
     predictions, losses = compare_experiments(base_model_configs, data, measurement_noise=None, save_path=save_path)
     plot_heatmaps(predictions, data, complex_axis=3, save_path=save_path, show_plot=False,
                   magnitude_only=True)
-    plot_losses(losses, save_path=save_path, show_plot=False)
-
+    # plot_losses(losses, save_path=save_path, show_plot=False)
+    with open(os.path.join(data_path, GRID, 'y_pred.pic'), 'wb') as f:
+        pickle.dump(predictions, f)
     ### with input noise
     save_path = os.path.join(data_path, GRID, 'plots_noise')
     compare_experiments(base_model_configs, data, measurement_noise=0.01, save_path=save_path)
 
     # ## Gaussian noise models
     save_path = os.path.join(data_path, GRID, 'plots_gauss')
-    gauss_model_configs = [exp_dnn_gauss_config(), exp_pann_gauss_config()]
+    gauss_model_configs = [exp_pann_gauss_config()]
     predictions, losses = compare_experiments(gauss_model_configs, data, measurement_noise=None, save_path=save_path)
     plot_heatmaps(predictions, data, complex_axis=3, save_path=save_path, show_plot=False,
                   magnitude_only=True)
     plot_losses(losses, save_path=save_path, show_plot=False)
-
+    with open(os.path.join(data_path, GRID, 'y_pred_gauss.pic'), 'wb') as f:
+        pickle.dump(predictions, f)
     plot_thd_bus(data['y_test'], predictions['PANN Gauss 0.02']['y_pred'], list(range(2, 21)), plot_buses,
                  save_path=save_path, show_plot=False)
     # excluded_buses = [0, 1, 20, 23, 21, 22]  # MV busses and those in industrial subnetwork
