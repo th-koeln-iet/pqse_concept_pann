@@ -6,7 +6,6 @@ from models.DNN import DNN
 class CNN(DNN):
     def __init__(self, hyperparams, network_data, callbacks=None):
         super(CNN, self).__init__(hyperparams, network_data, callbacks)
-        self.num_heads = hyperparams['num_heads']
         self.num_layers = hyperparams['num_hidden_layers']
         self.dropout_rate = hyperparams['dropout']
 
