@@ -238,7 +238,7 @@ def load_data_cigrelv():
     # Load data
     modes = [SplitComplexMode.CARTESIAN, SplitComplexMode.EXPONENTIAL]
     network_data = {
-        'grid_name': "CigreLVDist",
+        'grid_name': "cigrelv",
         'scaler': DimMinMaxScaler(),
         'test_size': 0.1,
         'validation_size': 0.2,
