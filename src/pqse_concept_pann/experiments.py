@@ -36,6 +36,7 @@ GRID = "ieee33"  # or "cigrelv"
 # GRID = "cigrelv"
 
 # If EPOCHS is set to a number > 0 and USE_TRAINED_MODEL is set, the model will continue training on the loaded weights
+# If you wish to only predict using existing weights, choose USE_TRAINED_MODEL = True and EPOCHS = 0
 
 
 def state_estimation(hyperparams: dict, network_data: dict, model_class, callbacks: list, exp_path: str, label: str,
@@ -125,6 +126,7 @@ def exp_pann_config():
     exp_path = os.path.join(data_path, GRID, label)
     hyperparams = {
         'batch_size': 16384,
+        # Max effective diameter with selected measurement points is 5 for the IEEE33 and 6 for the CigreLV grid
         'num_hidden_layers': 6 if GRID == 'cigrelv' else 5,
         'dropout': 0,
         'loss_function': 'mse',
@@ -312,7 +314,7 @@ if __name__ == '__main__':
         base_kvs.update(dict.fromkeys([0, 1, 20, 23], 20))  # some in MV
     elif GRID == 'ieee33':
         data = load_data_ieee33()
-        plot_buses = [13, 23, 29]  # IEEE33
+        plot_buses = [13, 23, 29]
         base_kvs = dict.fromkeys(np.arange(0, 33, 1), 12.66)  # all in MV
     else:
         raise UserWarning("Choose a valid grid name")
@@ -320,26 +322,23 @@ if __name__ == '__main__':
     # Run experiments
     ## Base models
     save_path = os.path.join(data_path, GRID, 'plots')
-    base_model_configs = [exp_cnn_config(), exp_transformer_config()]  # exp_transformer_config()
+    # select fewer experiments here for better plots:
+    base_model_configs = [exp_dnn_config(), exp_pann_config(), exp_cnn_config(), exp_transformer_config()]
     predictions, losses = compare_experiments(base_model_configs, data, measurement_noise=None, save_path=save_path)
     plot_heatmaps(predictions, data, complex_axis=3, save_path=save_path, show_plot=False,
                   magnitude_only=True)
     # plot_losses(losses, save_path=save_path, show_plot=False)
-    with open(os.path.join(data_path, GRID, 'y_pred.pic'), 'wb') as f:
-        pickle.dump(predictions, f)
     ### with input noise
     save_path = os.path.join(data_path, GRID, 'plots_noise')
     compare_experiments(base_model_configs, data, measurement_noise=0.01, save_path=save_path)
 
     # ## Gaussian noise models
     save_path = os.path.join(data_path, GRID, 'plots_gauss')
-    gauss_model_configs = [exp_pann_gauss_config()]
+    gauss_model_configs = [exp_dnn_config(), exp_pann_gauss_config()]
     predictions, losses = compare_experiments(gauss_model_configs, data, measurement_noise=None, save_path=save_path)
     plot_heatmaps(predictions, data, complex_axis=3, save_path=save_path, show_plot=False,
                   magnitude_only=True)
     plot_losses(losses, save_path=save_path, show_plot=False)
-    with open(os.path.join(data_path, GRID, 'y_pred_gauss.pic'), 'wb') as f:
-        pickle.dump(predictions, f)
     plot_thd_bus(data['y_test'], predictions['PANN Gauss 0.02']['y_pred'], list(range(2, 21)), plot_buses,
                  save_path=save_path, show_plot=False)
     # excluded_buses = [0, 1, 20, 23, 21, 22]  # MV busses and those in industrial subnetwork
