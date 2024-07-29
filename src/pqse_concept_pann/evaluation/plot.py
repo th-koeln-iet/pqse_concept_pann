@@ -204,8 +204,8 @@ def plot_estimations(y_test_polar, x_test_polar, y_pred_polar, title, mask_x_tes
     plt.scatter(mask_y_test, y_test_polar, label='True value', edgecolors='r', marker='o', facecolors='none')
 
     # Plotting y_pred_polar considering multiple models with outlined symbols
-    markers = ['s', '^', 'D']  # Additional markers can be added as needed
-    edgecolors = ['g', 'orange', 'brown']
+    markers = ['s', '^', 'D', 'h', '2']  # Additional markers can be added as needed
+    edgecolors = ['g', 'orange', 'brown', 'purple', 'darkred']
     for idx, (model_name, y_pred) in enumerate(y_pred_polar.items()):
         plt.scatter(bus_numbers, y_pred, label=f'Prediction ({model_name})', edgecolors=edgecolors[idx],
                     marker=markers[idx % len(markers)], facecolors='none')
