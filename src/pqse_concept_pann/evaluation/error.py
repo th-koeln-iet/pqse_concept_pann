@@ -66,117 +66,145 @@ def get_single_instance_split_axis(array_4d, freqs, axis=2, instance=0):
     return tuple(dfs)
 
 
-def calculate_nrmse_per_frequency(data_true, data_hse, orders_to_evaluate, min_max_ref=False):
-    list_return_nrmse_per_freq = []
-    for order in orders_to_evaluate:
-        data_per_freq_true = data_true[:, :, order-1, :]
-        data_per_freq_est = data_hse[:, :, order-1, :]
-        # select bus by bus
-        list_return_nrmse_per_bus = []
-        for bus in range(0, 44):
-            if (bus == 0 or bus == 1 or bus == 20 or bus == 23 or bus == 21 or bus == 22) and order % 3 == 0:
-                # 3rd order harmonics do not propagate into medium voltage level due to DYN-Transformers
-                list_return_nrmse_per_bus.append(0)
-            elif bus != 6 and bus != 22 and bus != 28: # do not evaluate measured nodes
-                all_bus_values_true = data_per_freq_true[bus, :, :]
-                all_bus_values_est = data_per_freq_est[bus, :, :]
-                all_bus_values_true = [math.sqrt(d[0]**2 + d[1]**2) for d in all_bus_values_true]
-                all_bus_values_est = [math.sqrt(d[0]**2 + d[1]**2) for d in all_bus_values_est]
-                ref_on = 0
-                if min_max_ref:
-                    ref_on = np.max(all_bus_values_true) - np.min(all_bus_values_true)
-                else:
-                    ref_on = np.mean(all_bus_values_true)
-                deltas = [all_bus_values_true[i] - all_bus_values_est[i] for i in range(len(all_bus_values_true))]
-                rmse = np.sqrt(np.mean(np.square(deltas)))
-                list_return_nrmse_per_bus.append(rmse/ref_on)
-        list_return_nrmse_per_freq.append(list_return_nrmse_per_bus)
-    return list_return_nrmse_per_freq
-
-def calculate_mse_rmse_per_frequency(data_true, data_hse, orders_to_evaluate,
-                                     use_mse=True, use_pu=False, other_ref_v:float = 1):
+def calculate_scaling_factor(voltage, base_ref, use_pu):
     """
-    Calculate the MSE or RMSE per frequency for each order
-    :param data_true: True values
-    :param data_hse: Harmonic state estimation results
-    :param orders_to_evaluate: harmonic orders to evaluate
-    :param use_mse: if True, calculate MSE, otherwise RMSE
-    :param use_pu: use per-unit values
-    :param other_ref_v:
-    :return:
+    Calculate scaling factor based on voltage level and reference base voltage.
+
+    Parameters:
+    :param voltage: Voltage level for the bus
+    :param base_ref: Reference base voltage for scaling
+    :param use_pu: Flag to indicate use of per-unit system
+
+    :return: float: Calculated scaling factor
     """
-    list_return_nrmse_per_freq = []
-    base_scale_lv = other_ref_v*1/(400/math.sqrt(3)) if use_pu else 1
-    base_scale_mv = other_ref_v*1/(20000/math.sqrt(3)) if use_pu else 0.4/20
-    for order in orders_to_evaluate:
-        data_per_freq_true = data_true[:, :, order-1, :]
-        data_per_freq_est = data_hse[:, :, order-1, :]
-        # select bus by bus
-        list_return_nrmse_per_bus = []
-        deltas_per_order = []
-        for bus in range(0, 44):
-            if bus != 22 and bus != 28 and bus != 6:
-                scaler = base_scale_lv
-                if bus == 0 or bus == 20 or bus == 23 or bus == 1:
-                    scaler = base_scale_mv
-                all_bus_values_true = data_per_freq_true[bus, :, :]
-                all_bus_values_est = data_per_freq_est[bus, :, :]
-                all_bus_values_true = [scaler * math.sqrt(d[0]**2 + d[1]**2) for d in all_bus_values_true]
-                all_bus_values_est = [scaler * math.sqrt(d[0]**2 + d[1]**2) for d in all_bus_values_est]
-                delta_per_bus = [all_bus_values_true[i] - all_bus_values_est[i] for i in range(len(all_bus_values_true))]
-                deltas_per_order.extend(delta_per_bus)
-                # print('Bus ' + str(bus) + ': ' + str(np.mean(np.square(delta_per_bus))))
-        squared_errors = np.square(deltas_per_order)
-        mse = np.mean(squared_errors)
-        add_to_list = mse if use_mse else np.sqrt(mse)
-        list_return_nrmse_per_freq.append(add_to_list)
-    return list_return_nrmse_per_freq
+    if use_pu:
+        return base_ref / (voltage / math.sqrt(3))
+    else:
+        return 1  # No scaling if per-unit system is not used
 
 
-def calculate_nrmse_vthd(data_true, data_hse, orders_to_evaluate, min_max_ref=False):
-    thd_per_bus_true, thd_per_bus_est = calculate_thd(data_true, data_hse, orders_to_evaluate)
-    # select bus by bus
-    list_return_nrmse_per_bus = []
-    for bus in range(0, 44):
-        all_bus_values_true = thd_per_bus_true[bus, :]
-        all_bus_values_est = thd_per_bus_est[bus, :]
-        ref_on = 0
-        if min_max_ref:
-            ref_on = np.max(all_bus_values_true) - np.min(all_bus_values_true)
-        else:
-            ref_on = np.mean(all_bus_values_true)
-
-        deltas = [all_bus_values_true[i] - all_bus_values_est[i] for i in range(len(all_bus_values_true))]
-        rmse = np.sqrt(np.mean(np.square(deltas)))
-        list_return_nrmse_per_bus.append(rmse / ref_on)
-
-    return list_return_nrmse_per_bus
-
-
-def calculate_thd(data_true, data_hse, orders_to_evaluate):
+def calculate_error_metric(y_true, y_pred, orders_to_evaluate, base_kvs, metric='mse', use_pu=False, vt_v=1,
+                           excluded_buses=None, min_max_ref=False):
     """
-    Calculate the Total Harmonic Distortion (THD) for each bus
-    :param data_true: True values
-    :param data_hse: Harmonic state estimation results
+    Calculate Mean Squared Error (MSE), Root Mean Squared Error (RMSE), or Normalized Root Mean Squared Error (NRMSE) per frequency order.
+
+    Parameters:
+    :param y_true: True measurement data
+    :param y_pred: Predicted or HSE results
     :param orders_to_evaluate: Harmonic orders to evaluate
+    :param base_kvs: Dictionary of bus indices to their respective voltage levels
+    :param metric: Specifies the metric to calculate ('mse', 'rmse', 'nrmse')
+    :param use_pu: Use per-unit values if True
+    :param vt_v: Reference target voltage level for scaling (in volt)
+    :param excluded_buses: List of bus indices to exclude from calculations
+    :param min_max_ref: Flag to use min-max as the reference for normalization; defaults to using mean
+
+    :return list: Calculated error metrics for each order
+    """
+    if excluded_buses is None:
+        excluded_buses = []
+    error_metrics_per_freq = []
+    num_buses = y_true.shape[1]
+
+    for order in orders_to_evaluate:
+        data_per_freq_true = y_true[:, :, order - 1]
+        data_per_freq_pred = y_pred[:, :, order - 1]
+        error_metrics_per_order = []
+
+        for bus in range(num_buses):
+            if bus in excluded_buses:
+                error_metrics_per_order.append(None)
+            else:
+                voltage = base_kvs.get(bus, 400)  # Default to 400 if not specified
+                scaler = calculate_scaling_factor(voltage, vt_v, use_pu)
+                true_values = scaler * np.sqrt(np.sum(data_per_freq_true[:, bus] ** 2, axis=1))
+                predicted_values = scaler * np.sqrt(np.sum(data_per_freq_pred[:, bus] ** 2, axis=1))
+                if metric in ['mse', 'rmse']:
+                    squared_errors = (true_values - predicted_values) ** 2
+                    mse = np.mean(squared_errors)
+                    if metric == 'mse':
+                        error_metrics_per_order.append(mse)
+                    else:
+                        error_metrics_per_order.append(np.sqrt(mse))
+                elif metric == 'nrmse':
+                    ref_value = np.max(true_values) - np.min(true_values) if min_max_ref else np.mean(true_values)
+                    deltas = true_values - predicted_values
+                    rmse = np.sqrt(np.mean(deltas ** 2))
+                    error_metrics_per_order.append(rmse / ref_value if ref_value else None)
+
+        error_metrics_per_freq.append(error_metrics_per_order)
+    return error_metrics_per_freq
+
+
+def calculate_thd(data, orders_to_evaluate):
+    """
+    Calculate Total Harmonic Distortion (THD) for each bus.
+
+    :param data: Measurement data (true or estimated)
+    :param orders_to_evaluate: Harmonic orders to evaluate
+
+    :return: array:
+    """
+    num_states = data.shape[0]
+    num_buses = data.shape[1]
+    thd_values = np.zeros((num_states, num_buses))
+
+    for state in range(num_states):
+        for bus in range(num_buses):
+            fundamental = np.sqrt(np.sum(data[state, bus, 0] ** 2))
+            harmonic_sum = sum(np.sqrt(np.sum(data[state, bus, o - 1] ** 2)) for o in orders_to_evaluate if o != 1)
+            thd_values[state, bus] = 100 * harmonic_sum / fundamental if fundamental else 0
+    return thd_values
+
+
+def calculate_nrmse_vthd(y_true, y_pred, orders_to_evaluate, min_max_ref=False):
+    """
+    Calculate NRMSE for THD values between true and estimated data.
+
+    Parameters:
+    :param y_true: True THD values
+    :param y_pred: Estimated THD values
+    :param orders_to_evaluate: Harmonic orders to evaluate
+    :param min_max_ref: Flag to use min-max as the reference; defaults to using mean
+    :return: list: NRMSE values for each bus
+    """
+    thd_true = calculate_thd(y_true, orders_to_evaluate)
+    thd_est = calculate_thd(y_pred, orders_to_evaluate)
+    nrmse = []
+
+    for bus in range(thd_true.shape[1]):
+        true_values = thd_true[:, bus]
+        estimated_values = thd_est[:, bus]
+        ref_value = np.max(true_values) - np.min(true_values) if min_max_ref else np.mean(true_values)
+        deltas = true_values - estimated_values
+        rmse = np.sqrt(np.mean(np.square(deltas)))
+        nrmse.append(rmse / ref_value if ref_value else None)
+
+    return nrmse
+
+
+def error_metrics_per_harmonic(y_true, y_pred, base_kvs, harmonic_orders=None, excluded_buses=None, vt_v=None):
+    """
+    Calculate and print MSE and RMSE for specific harmonic orders
+    :param y_true: true values
+    :param y_pred: predictions
+    :param base_kvs: dictionary of base voltages per node
+    :param harmonic_orders: harmonic orders for which to calculate the metrics
+    :param excluded_buses: busses to exclude
+    :param vt_v: target base voltage level to reference to
     :return:
     """
-    thd_per_bus_true = np.zeros((data_true.shape[0], data_true.shape[1]))
-    thd_per_bus_est = np.zeros((data_true.shape[0], data_true.shape[1]))
-    # calculte thd for every state and and bus
-    for state in range(len(data_true)):
+    # nmrse_thd = calculate_nrmse_vthd(data['y_test'], data['y_pred'], orders_to_evaluate_thd)
+    if harmonic_orders is None:
+        harmonic_orders = [1, 3, 5, 7]
+    if vt_v is None:
+        vt_v = 4160 / math.sqrt(3)
+    mse_results = calculate_error_metric(y_true, y_pred, harmonic_orders, base_kvs, 'mse', use_pu=False,
+                                         vt_v=vt_v, excluded_buses=excluded_buses, min_max_ref=False)
+    for order in range(len(harmonic_orders)):
+        print(f'maximum RMSE/MSE on order {harmonic_orders[order]}: {mse_results[order]}')
 
-        for bus in range(0, 44):
-            thd_denom_u_sqared_true = 0
-            thd_denom_u_sqared_est = 0
-            fundamental_squared_true = math.sqrt(
-                data_true[state, bus, 0, 0] ** 2 + data_true[state, bus, 0, 1] ** 2)
-            fundamental_squared_est = math.sqrt(data_hse[state, bus, 0, 0] ** 2 + data_hse[state, bus, 0, 1] ** 2)
-            for o in orders_to_evaluate:
-                val_true = math.sqrt(data_true[state, bus, o - 1, 0] ** 2 + data_true[state, bus, o - 1, 1] ** 2)
-                thd_denom_u_sqared_true += (val_true ** 2)
-                val_est = math.sqrt(data_hse[state, bus, o - 1, 0] ** 2 + data_hse[state, bus, o - 1, 1] ** 2)
-                thd_denom_u_sqared_est += (val_est ** 2)
-            thd_per_bus_true[state, bus] = 100 * math.sqrt(thd_denom_u_sqared_true) / fundamental_squared_true
-            thd_per_bus_est[state, bus] = 100 * math.sqrt(thd_denom_u_sqared_est) / fundamental_squared_est
-    return thd_per_bus_true, thd_per_bus_est
+    nrmse_results = calculate_error_metric(y_true, y_pred, harmonic_orders, base_kvs, 'nrmse', use_pu=False,
+                                           vt_v=vt_v, excluded_buses=excluded_buses, min_max_ref=False)
+    for order in range(len(harmonic_orders)):
+        print(f'maximum nRMSE on order {harmonic_orders[order]}: {max(nrmse_results[order])}')

@@ -1,15 +1,19 @@
 import configparser
 import os
+import pickle
 import random
 
 import numpy as np
 import tensorflow as tf
-
-from evaluation.plot import evaluate, plot_heatmaps, plot_losses, plot_cdf, thd_plots_wrapper
+from tensorflow.keras.callbacks import ModelCheckpoint
+from evaluation.plot import evaluate, plot_heatmaps, plot_losses, plot_cdf, plot_thd_bus
 from layers import AdjacencyPrunedLayer
 from models import DNN
 from models import PANN
-from models.callbacks import MinimalLossSaveModelCheckpoint, CyclicLR
+from models import Transformer
+from models import CNN
+from models.callbacks import CyclicLR
+from pqse_concept_pann.evaluation.error import error_metrics_per_harmonic
 from preprocessing import read_data, add_measurement_noise
 from tools import DimMinMaxScaler, SplitComplexMode, SplitComplexConverter, mean_absolute_error
 
@@ -26,11 +30,13 @@ config.read(os.path.join(config_path, 'config.ini'))
 data_path = os.path.abspath(os.path.join(config_path, os.path.expanduser(config['DEFAULT']['data_path'])))
 
 # Alter the following parameters
-EPOCHS = 0  # Epochs to train
-USE_TRAINED_MODEL = True  # use existing weights of trained model?
-
+EPOCHS = 3000  # Epochs to train
+USE_TRAINED_MODEL = False  # use existing weights of trained model?
+GRID = "ieee33"  # or "cigrelv"
+# GRID = "cigrelv"
 
 # If EPOCHS is set to a number > 0 and USE_TRAINED_MODEL is set, the model will continue training on the loaded weights
+# If you wish to only predict using existing weights, choose USE_TRAINED_MODEL = True and EPOCHS = 0
 
 
 def state_estimation(hyperparams: dict, network_data: dict, model_class, callbacks: list, exp_path: str, label: str,
@@ -63,7 +69,7 @@ def state_estimation(hyperparams: dict, network_data: dict, model_class, callbac
 
 def exp_dnn_config():
     label = "DNN"
-    exp_path = os.path.join(data_path, label)
+    exp_path = os.path.join(data_path, GRID, label)
     hyperparams = {
         'batch_size': 16384,
         'num_hidden_layers': 2,
@@ -71,16 +77,16 @@ def exp_dnn_config():
         'loss_function': 'mse',
         'activation': 'leaky_relu',
         'optimizer': 'adam',
-        'learning_rate': 5e-4,
+        'learning_rate': 5e-5,
         'layer_scaling_factor': 1,  # set scaling factor to 2 to achieve the same amount of neurons per layer as in PANN
         'epochs': EPOCHS,
         'skip_connections': True,
         'gaussian_noise': 0.00,  # standard deviation
         'batch_normalization': False,
     }
-    callbacks = [MinimalLossSaveModelCheckpoint(filepath=os.path.join(exp_path, 'weights', 'cp.ckpt'), grace_period=500,
-                                                min_eps_percent=1e-3,
-                                                monitor='val_loss', verbose=1),
+    callbacks = [ModelCheckpoint(filepath=os.path.join(exp_path, 'weights', 'cp.ckpt'),
+                                 monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=True,
+                                 initial_value_threshold=1e-2),
                  CyclicLR(min_lr=hyperparams['learning_rate'] / 5, max_lr=hyperparams['learning_rate'] * 2,
                           step_size=200.)]
     model_class = DNN
@@ -90,7 +96,7 @@ def exp_dnn_config():
 
 def exp_dnn_gauss_config():
     label = "DNN Gauss 0.02"
-    exp_path = os.path.join(data_path, label)
+    exp_path = os.path.join(data_path, GRID, label)
     hyperparams = {
         'batch_size': 16384,
         'num_hidden_layers': 2,
@@ -98,16 +104,16 @@ def exp_dnn_gauss_config():
         'loss_function': 'mse',
         'activation': 'leaky_relu',
         'optimizer': 'adam',
-        'learning_rate': 5e-4,
+        'learning_rate': 5e-5,
         'layer_scaling_factor': 1,
         'epochs': EPOCHS,
         'skip_connections': True,
         'gaussian_noise': 0.02,  # standard deviation
         'batch_normalization': False,
     }
-    callbacks = [MinimalLossSaveModelCheckpoint(filepath=os.path.join(exp_path, 'weights', 'cp.ckpt'), grace_period=500,
-                                                min_eps_percent=1e-3,
-                                                monitor='val_loss', verbose=1),
+    callbacks = [ModelCheckpoint(filepath=os.path.join(exp_path, 'weights', 'cp.ckpt'),
+                                 monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=True,
+                                 initial_value_threshold=1e-2),
                  CyclicLR(min_lr=hyperparams['learning_rate'] / 5, max_lr=hyperparams['learning_rate'] * 2,
                           step_size=200.)]
     model_class = DNN
@@ -117,24 +123,25 @@ def exp_dnn_gauss_config():
 
 def exp_pann_config():
     label = "PANN"
-    exp_path = os.path.join(data_path, label)
+    exp_path = os.path.join(data_path, GRID, label)
     hyperparams = {
         'batch_size': 16384,
-        'num_hidden_layers': 6,
+        # Max effective diameter with selected measurement points is 5 for the IEEE33 and 6 for the CigreLV grid
+        'num_hidden_layers': 6 if GRID == 'cigrelv' else 5,
         'dropout': 0,
         'loss_function': 'mse',
         'activation': 'leaky_relu',
         'optimizer': 'adam',
-        'learning_rate': 5e-4,
+        'learning_rate': 5e-5,
         'layer_scaling_factor': 1,
         'epochs': EPOCHS,
         'skip_connections': True,
         'gaussian_noise': 0.00,  # standard deviation
         'batch_normalization': False,
     }
-    callbacks = [MinimalLossSaveModelCheckpoint(filepath=os.path.join(exp_path, 'weights', 'cp.ckpt'), grace_period=500,
-                                                min_eps_percent=1e-3,
-                                                monitor='val_loss', verbose=1),
+    callbacks = [ModelCheckpoint(filepath=os.path.join(exp_path, 'weights', 'cp.ckpt'),
+                                 monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=True,
+                                 initial_value_threshold=1e-2),
                  CyclicLR(min_lr=hyperparams['learning_rate'] / 5, max_lr=hyperparams['learning_rate'] * 2,
                           step_size=200.)]
     model_class = PANN
@@ -144,24 +151,24 @@ def exp_pann_config():
 
 def exp_pann_gauss_config():
     label = "PANN Gauss 0.02"
-    exp_path = os.path.join(data_path, label)
+    exp_path = os.path.join(data_path, GRID, label)
     hyperparams = {
         'batch_size': 16384,
-        'num_hidden_layers': 6,
+        'num_hidden_layers': 6 if GRID == 'cigrelv' else 5,
         'dropout': 0,
         'loss_function': 'mse',
         'activation': 'leaky_relu',
         'optimizer': 'adam',
-        'learning_rate': 5e-4,
+        'learning_rate': 5e-5,
         'layer_scaling_factor': 1,
         'epochs': EPOCHS,
         'skip_connections': True,
         'gaussian_noise': 0.02,  # standard deviation
         'batch_normalization': False,
     }
-    callbacks = [MinimalLossSaveModelCheckpoint(filepath=os.path.join(exp_path, 'weights', 'cp.ckpt'), grace_period=500,
-                                                min_eps_percent=1e-3,
-                                                monitor='val_loss', verbose=1),
+    callbacks = [ModelCheckpoint(filepath=os.path.join(exp_path, 'weights', 'cp.ckpt'),
+                                 monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=True,
+                                 initial_value_threshold=1e-2),
                  CyclicLR(min_lr=hyperparams['learning_rate'] / 5, max_lr=hyperparams['learning_rate'] * 2,
                           step_size=200.)]
     model_class = PANN
@@ -169,11 +176,69 @@ def exp_pann_gauss_config():
     return hyperparams, callbacks, model_class, custom_layer, exp_path, label
 
 
-def load_data():
+def exp_transformer_config():
+    label = "Transformer"
+    exp_path = os.path.join(data_path, GRID, label)
+    hyperparams = {
+        'batch_size': int(16384 / 16),  # batch size limited by GPU memory size
+        'num_hidden_layers': 12,
+        'dropout': 0,
+        'loss_function': 'mse',
+        'activation': 'leaky_relu',
+        'optimizer': 'adam',
+        'learning_rate': 1e-5,
+        'layer_scaling_factor': 1,
+        'epochs': int(EPOCHS / 8), # more gradient updates due to smaller batch size --> reduce amount of epochs
+        'skip_connections': True,
+        'gaussian_noise': 0.00,  # standard deviation
+        'batch_normalization': False,
+        'ff_dim': 256,
+        'key_dim': 80,
+        'input_len': 44,
+        'num_heads': 8,
+    }
+    callbacks = [ModelCheckpoint(filepath=os.path.join(exp_path, 'weights', 'cp.ckpt'),
+                                 monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=True,
+                                 initial_value_threshold=1e-2),
+                 CyclicLR(min_lr=hyperparams['learning_rate'] / 100, max_lr=hyperparams['learning_rate'],
+                          step_size=200.)]
+    model_class = Transformer
+    custom_layer = None
+    return hyperparams, callbacks, model_class, custom_layer, exp_path, label
+
+
+def exp_cnn_config():
+    label = "CNN"
+    exp_path = os.path.join(data_path, GRID, label)
+    hyperparams = {
+        'batch_size': 16384,
+        'num_hidden_layers': 3,
+        'dropout': 0,
+        'loss_function': 'mse',
+        'activation': 'leaky_relu',
+        'optimizer': 'adam',
+        'learning_rate': 5e-5,
+        'layer_scaling_factor': 1,  # set scaling factor to 2 to achieve the same amount of neurons per layer as in PANN
+        'epochs': EPOCHS,
+        'skip_connections': True,
+        'gaussian_noise': 0.00,  # standard deviation
+        'batch_normalization': False,
+    }
+    callbacks = [ModelCheckpoint(filepath=os.path.join(exp_path, 'weights', 'cp.ckpt'),
+                                 monitor='val_loss', verbose=1, save_best_only=True, save_weights_only=True,
+                                 initial_value_threshold=1e-2),
+                 CyclicLR(min_lr=hyperparams['learning_rate'] / 5, max_lr=hyperparams['learning_rate'] * 2,
+                          step_size=200.)]
+    model_class = CNN
+    custom_layer = None
+    return hyperparams, callbacks, model_class, custom_layer, exp_path, label
+
+
+def load_data_cigrelv():
     # Load data
     modes = [SplitComplexMode.CARTESIAN, SplitComplexMode.EXPONENTIAL]
     network_data = {
-        'grid_name': "CigreLVDist",
+        'grid_name': "cigrelv",
         'scaler': DimMinMaxScaler(),
         'test_size': 0.1,
         'validation_size': 0.2,
@@ -187,6 +252,16 @@ def load_data():
     input_converter = SplitComplexConverter(modes, target_axis=3)
     target_converter = SplitComplexConverter(modes[0], target_axis=3)
     data = read_data(data_path, network_data, input_converter, target_converter, transpose_data_format=True)
+    return data
+
+
+def load_data_ieee33():
+    """
+    For the IEEE33 grid all preprocessing is already complete, measurement nodes are [2, 12, 28] (0-indexed)
+    """
+    import pickle
+    with open(os.path.join(data_path, 'ieee33', 'ieee33_data.pic'), 'rb') as f:
+        data = pickle.load(f)
     return data
 
 
@@ -232,31 +307,44 @@ def compare_experiments(configs, data, measurement_noise=0.01, save_path=None):
 
 if __name__ == '__main__':
     # Load data from pickle files
-    data = load_data()
+    if GRID == 'cigrelv':
+        data = load_data_cigrelv()
+        plot_buses = [16, 25, 37]
+        base_kvs = dict.fromkeys(np.arange(0, 44, 1), 0.4)  # most in LV
+        base_kvs.update(dict.fromkeys([0, 1, 20, 23], 20))  # some in MV
+    elif GRID == 'ieee33':
+        data = load_data_ieee33()
+        plot_buses = [13, 23, 29]
+        base_kvs = dict.fromkeys(np.arange(0, 33, 1), 12.66)  # all in MV
+    else:
+        raise UserWarning("Choose a valid grid name")
 
     # Run experiments
-
     ## Base models
-    save_path = os.path.join(data_path, 'plots')
-    base_model_configs = [exp_dnn_config(), exp_pann_config()]
+    save_path = os.path.join(data_path, GRID, 'plots')
+    # select fewer experiments here for better plots:
+    base_model_configs = [exp_dnn_config(), exp_pann_config(), exp_cnn_config(), exp_transformer_config()]
     predictions, losses = compare_experiments(base_model_configs, data, measurement_noise=None, save_path=save_path)
     plot_heatmaps(predictions, data, complex_axis=3, save_path=save_path, show_plot=False,
                   magnitude_only=True)
-    plot_losses(losses, save_path=save_path, show_plot=False)
-
+    # plot_losses(losses, save_path=save_path, show_plot=False)
     ### with input noise
-    save_path = os.path.join(data_path, 'plots_noise')
+    save_path = os.path.join(data_path, GRID, 'plots_noise')
     compare_experiments(base_model_configs, data, measurement_noise=0.01, save_path=save_path)
 
-    ## Gaussian noise models
-    save_path = os.path.join(data_path, 'plots_gauss')
-    gauss_model_configs = [exp_dnn_gauss_config(), exp_pann_gauss_config()]
+    # ## Gaussian noise models
+    save_path = os.path.join(data_path, GRID, 'plots_gauss')
+    gauss_model_configs = [exp_dnn_config(), exp_pann_gauss_config()]
     predictions, losses = compare_experiments(gauss_model_configs, data, measurement_noise=None, save_path=save_path)
     plot_heatmaps(predictions, data, complex_axis=3, save_path=save_path, show_plot=False,
                   magnitude_only=True)
     plot_losses(losses, save_path=save_path, show_plot=False)
-    thd_plots_wrapper(predictions['PANN Gauss 0.02']['y_pred'], data['y_test'], save_path=save_path, show_plot=False)
+    plot_thd_bus(data['y_test'], predictions['PANN Gauss 0.02']['y_pred'], list(range(2, 21)), plot_buses,
+                 save_path=save_path, show_plot=False)
+    # excluded_buses = [0, 1, 20, 23, 21, 22]  # MV busses and those in industrial subnetwork
+    error_metrics_per_harmonic(y_true=data['y_test'], y_pred=predictions['PANN Gauss 0.02']['y_pred'],
+                               base_kvs=base_kvs)
 
     ### with input noise
-    save_path = os.path.join(data_path, 'plots_noise_gauss')
+    save_path = os.path.join(data_path, GRID, 'plots_noise_gauss')
     compare_experiments(gauss_model_configs, data, measurement_noise=0.01, save_path=save_path)
