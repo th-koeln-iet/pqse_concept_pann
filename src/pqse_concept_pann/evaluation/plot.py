@@ -98,6 +98,7 @@ def plot_cdf(prediction_losses, label='MAPE', dashed_line_str='input noise', col
     :param show_plot: if True plot will be shown
     :return: None
     """
+    plt.rcParams.update({'font.size': 10})
     # Flag to check if the specific string is encountered at least once
     specific_string_found = False
 
@@ -198,6 +199,7 @@ def plot_estimations(y_test_polar, x_test_polar, y_pred_polar, title, mask_x_tes
     :param show_plot: if True plot will be shown
     :return:
     """
+    plt.rcParams.update({'font.size': 10})
     bus_numbers = list(range(0, len(next(iter(y_pred_polar.values())))))  # somewhat hacky way to get all nodes
     if mask_y_test is None:
         mask_y_test = bus_numbers
@@ -391,7 +393,7 @@ def plot_heatmap_subplots(df, df_titles, title="", save_path=None, show_plot=Tru
         new_tick_labels.append(str(int(math.trunc(label))))
 
     axs[0].set_yticks(new_ticks, new_tick_labels)
-    axs[0].set_title(r'$e_{M_{F}} [V]$')
+    axs[0].set_title(r'$e_{M,F} [V]$')
     axs[0].set_ylabel('')  # remove y-axis label
     axs[0].set_xlabel('')  # remove x-axis label
     axs[0].set_xticks([])  # remove x-ticks
@@ -400,7 +402,7 @@ def plot_heatmap_subplots(df, df_titles, title="", save_path=None, show_plot=Tru
     s_f = sns.heatmap(df_only_fundamental, ax=axs[1], cbar=False, cmap="viridis")
     s_h = sns.heatmap(df_drop_fundamental, ax=axs[2])
     cbar = s_h.collections[0].colorbar
-    cbar.ax.set_title(r'$e_{M_{H}} [V]$')
+    cbar.ax.set_title(r'$e_{M,H} [V]$')
 
     axs[2].set_yticklabels([])
     s_f.set(ylabel='Node')
@@ -425,6 +427,7 @@ def plot_heatmap_subplots(df, df_titles, title="", save_path=None, show_plot=Tru
 
 
 def plot_thd_bus(y_true, y_pred, orders_to_evaluate, show_busses, save_path=None, show_plot=True):
+    plt.rcParams.update({'font.size': 10})
     thd_true = calculate_thd(y_true, orders_to_evaluate)
     thd_est = calculate_thd(y_pred, orders_to_evaluate)
     start_day = 4

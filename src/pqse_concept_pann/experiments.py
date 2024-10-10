@@ -331,7 +331,8 @@ if __name__ == '__main__':
     ### with input noise
     save_path = os.path.join(data_path, GRID, 'plots_noise')
     compare_experiments(base_model_configs, data, measurement_noise=0.01, save_path=save_path)
-
+    plot_thd_bus(data['y_test'], predictions['PANN']['y_pred'], list(range(2, 21)), plot_buses,
+                 save_path=save_path, show_plot=False)
     # ## Gaussian noise models
     save_path = os.path.join(data_path, GRID, 'plots_gauss')
     gauss_model_configs = [exp_cnn_config(), exp_dnn_gauss_config(), exp_pann_gauss_config()]
