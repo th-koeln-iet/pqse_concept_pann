@@ -45,7 +45,8 @@ def plot_history(data, mode='val_loss', save_path=None, show_plot=True):
     fig = ax.get_figure()
     if save_path is not None:
         os.makedirs(save_path, exist_ok=True)
-        fig.savefig(os.path.join(save_path, f"{mode}.png"))
+        fig.savefig(os.path.join(save_path, f"{mode}.png"), dpi=300)
+        fig.savefig(os.path.join(save_path, f"{mode}.svg"), format='svg')
     if show_plot:
         plt.show()
     plt.close()
@@ -78,7 +79,8 @@ def plot_train_val_loss_history(df_train, df_val, save_path=None, show_plot=True
     fig = ax.get_figure()
     if save_path is not None:
         os.makedirs(save_path, exist_ok=True)
-        fig.savefig(os.path.join(save_path, f"train_val_loss.png"))
+        fig.savefig(os.path.join(save_path, f"train_val_loss.png"), dpi=300)
+        fig.savefig(os.path.join(save_path, f"train_val_loss.svg"), format='svg')
     if show_plot:
         plt.show()
     plt.close()
@@ -114,10 +116,10 @@ def plot_cdf(prediction_losses, label='MAPE', dashed_line_str='input noise', col
                 color = 'b'
         # Check for the specific string and plot accordingly
         if dashed_line_str in model_name:
-            plt.plot(sorted_losses, cdf, '--', color=color, label=model_name)
+            plt.plot(sorted_losses, cdf, '--', label=model_name)
             specific_string_found = True
         else:
-            plt.plot(sorted_losses, cdf, color=color, label=model_name)
+            plt.plot(sorted_losses, cdf, label=model_name)
 
     # Customize the graph
     plt.title(f'CDF of {label} for Different Models')
@@ -140,7 +142,8 @@ def plot_cdf(prediction_losses, label='MAPE', dashed_line_str='input noise', col
     plt.tight_layout()
     if save_path is not None:
         os.makedirs(save_path, exist_ok=True)
-        plt.savefig(os.path.join(save_path, f'cdf_{label}.png'))
+        plt.savefig(os.path.join(save_path, f'cdf_{label}.png'), dpi=300)
+        plt.savefig(os.path.join(save_path, f'cdf_{label}.svg'), format='svg')
     if show_plot:
         plt.show()
     plt.close()
@@ -229,8 +232,8 @@ def plot_estimations(y_test_polar, x_test_polar, y_pred_polar, title, mask_x_tes
     # Adding a legend
     plt.legend()
     if save_path is not None:
-        plt.savefig(save_path)
-
+        plt.savefig(save_path, dpi=300)
+        plt.savefig(save_path.replace('png', 'svg'), format='svg')
     if show_plot:
         plt.show()
     plt.close()
@@ -288,7 +291,7 @@ def plot_heatmaps(predictions, data, complex_axis=3, save_path=None, show_plot=T
         plot_heatmap(list(dfs), df_titles,
                      title=f"{key} MAE", drop_fundamental=True,
                      save_path=save_path, show_plot=show_plot)
-
+        plot_heatmap_subplots(dfs[0], df_titles=df_titles, title=f"{key} MAE", save_path=save_path, show_plot=show_plot)
         # Max error plots
         dfs = get_max_error_split_axis(y_test_polar, y_pred_polar, data['frequencies'], feature_axis=complex_axis,
                                        error_axis=0)
@@ -298,6 +301,7 @@ def plot_heatmaps(predictions, data, complex_axis=3, save_path=None, show_plot=T
         plot_heatmap(dfs, df_titles,
                      title=f"{key} Max Error",
                      save_path=save_path, show_plot=show_plot)
+        plot_heatmap_subplots(dfs[0], df_titles=df_titles, title=f"{key} Max Error", save_path=save_path, show_plot=show_plot)
         plot_heatmap(dfs, df_titles,
                      title=f"{key} Max Error", drop_fundamental=True,
                      save_path=save_path, show_plot=show_plot)
@@ -333,10 +337,88 @@ def plot_heatmap(dfs, df_titles, title="", drop_fundamental=False, save_path=Non
     if save_path is not None:
         os.makedirs(save_path, exist_ok=True)
         if drop_fundamental:
-            save_path = os.path.join(save_path, title + "_drop-fund_" + '.png')
+            save_path = os.path.join(save_path, title + "_drop-fund_")
         else:
-            save_path = os.path.join(save_path, title + '.png')
-        fig.savefig(save_path)
+            save_path = os.path.join(save_path, title)
+        fig.savefig(save_path + '.png', dpi=300)
+        fig.savefig(save_path + '.svg', format='svg')
+    if show_plot:
+        plt.show()
+    plt.close()
+
+
+def plot_heatmap_subplots(df, df_titles, title="", save_path=None, show_plot=True, n_major_intervals=5):
+    """
+    Plot fundamental and harmonics heatmaps on two scales in one plot
+    :param df: pandas dataframe with the dataset
+    :param df_titles: list of strings, titles for each dataframe
+    :param title: model name or similar
+    :param save_path: if provided, plot will be saved at specified location
+    :param show_plot: if True plot will be shown
+    :param n_major_intervals: how many intervals shall the new colorbar have
+    :return:
+    """
+
+    plt.rcParams.update({'font.size': 16})
+    fig, axs = plt.subplots(ncols=3, figsize=(14, 9), gridspec_kw={'width_ratios': [1, 1, 19], 'wspace': 0.25})
+
+    column_max_val = df.max().idxmax()
+    df_only_fundamental = df[[column_max_val]]
+    df_drop_fundamental = df.drop(column_max_val, axis=1)
+
+    df_min = df_only_fundamental.min().min()
+    df_max = df_only_fundamental.max().max()
+
+    # Interpolate values for own colorbar
+    interpolated_values = np.linspace(df_max, df_min, 1000)
+    interpolated_series = np.linspace(1000, 1, 1000)
+    df_scale = pd.DataFrame(interpolated_series)
+    df_scale.index = interpolated_values
+
+    # Add a heatmap as custom colorbar
+    s_f_scale = sns.heatmap(df_scale, ax=axs[0], cbar=False, cmap="viridis")
+
+    new_ticks = []
+    new_tick_labels = []
+    old_ticks = s_f_scale.get_yticks()
+    delta_ticks = (old_ticks[-1] - old_ticks[0]) / n_major_intervals
+    df_max_start = (df_max - (df_max % 5))
+    delta_tick_labels = (df_max_start - (df_min - (df_min % 5))) / n_major_intervals
+    for i in range(0, n_major_intervals):
+        tick = old_ticks[0] + delta_ticks * i
+        new_ticks.append(tick)
+        label = df_max_start - delta_tick_labels*i
+        new_tick_labels.append(str(int(math.trunc(label))))
+
+    axs[0].set_yticks(new_ticks, new_tick_labels)
+    axs[0].set_title(r'$e_{M_{F}} [V]$')
+    axs[0].set_ylabel('')  # remove y-axis label
+    axs[0].set_xlabel('')  # remove x-axis label
+    axs[0].set_xticks([])  # remove x-ticks
+
+    # Actual data
+    s_f = sns.heatmap(df_only_fundamental, ax=axs[1], cbar=False, cmap="viridis")
+    s_h = sns.heatmap(df_drop_fundamental, ax=axs[2])
+    cbar = s_h.collections[0].colorbar
+    cbar.ax.set_title(r'$e_{M_{H}} [V]$')
+
+    axs[2].set_yticklabels([])
+    s_f.set(ylabel='Node')
+    plt.setp(s_f.xaxis.get_majorticklabels(), rotation=45)
+    plt.setp(s_f.yaxis.get_majorticklabels(), rotation=0)
+    axs[1].set_title('50Hz')
+    axs[2].set_title('Harmonics')
+    fig.suptitle(df_titles[0])
+    # plt.text(1.0, 900, 'Frequency [Hz]')  # 0.5 0.05
+    s_h.set(xlabel='Frequency [Hz]')
+    plt.yticks(rotation=0)
+    s_h.tick_params(labelrotation=45)
+    # plt.tight_layout()
+    if save_path is not None:
+        os.makedirs(save_path, exist_ok=True)
+        save_path = os.path.join(save_path, title + "_combined")
+        fig.savefig(save_path + '.png', dpi=300)
+        fig.savefig(save_path + '.svg', format='svg')
     if show_plot:
         plt.show()
     plt.close()
@@ -381,7 +463,8 @@ def plot_thd_bus(y_true, y_pred, orders_to_evaluate, show_busses, save_path=None
     plt.tight_layout()
     if save_path is not None:
         os.makedirs(save_path, exist_ok=True)
-        plt.savefig(os.path.join(save_path, 'THD_busses.png'))
+        plt.savefig(os.path.join(save_path, 'THD_busses.png'), dpi=300)
+        plt.savefig(os.path.join(save_path, 'THD_busses.svg'), format='svg')
     if show_plot:
         plt.show()
     plt.close()
