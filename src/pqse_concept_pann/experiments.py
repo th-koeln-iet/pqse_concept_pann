@@ -30,9 +30,9 @@ config.read(os.path.join(config_path, 'config.ini'))
 data_path = os.path.abspath(os.path.join(config_path, os.path.expanduser(config['DEFAULT']['data_path'])))
 
 # Alter the following parameters
-EPOCHS = 3000  # Epochs to train
-USE_TRAINED_MODEL = False  # use existing weights of trained model?
-GRID = "ieee33"  # or "cigrelv"
+EPOCHS = 0  # Epochs to train
+USE_TRAINED_MODEL = True  # use existing weights of trained model?
+GRID = "cigrelv"  # or "cigrelv"
 # GRID = "cigrelv"
 
 # If EPOCHS is set to a number > 0 and USE_TRAINED_MODEL is set, the model will continue training on the loaded weights
@@ -301,7 +301,7 @@ def compare_experiments(configs, data, measurement_noise=0.01, save_path=None):
     mae = {}
     for key, value in predictions.items():
         mae[key] = mean_absolute_error(data['y_test_n'], value['y_pred_n'], axis=0).flatten()
-    plot_cdf(mae, label='MAE', color_str='DNN', save_path=save_path, show_plot=False)
+    plot_cdf(mae, label='MAE', save_path=save_path, show_plot=False)
     return predictions, losses
 
 
@@ -323,7 +323,7 @@ if __name__ == '__main__':
     ## Base models
     save_path = os.path.join(data_path, GRID, 'plots')
     # select fewer experiments here for better plots:
-    base_model_configs = [exp_dnn_config(), exp_pann_config(), exp_cnn_config(), exp_transformer_config()]
+    base_model_configs = [exp_cnn_config(), exp_dnn_config(), exp_pann_config()]
     predictions, losses = compare_experiments(base_model_configs, data, measurement_noise=None, save_path=save_path)
     plot_heatmaps(predictions, data, complex_axis=3, save_path=save_path, show_plot=False,
                   magnitude_only=True)
@@ -334,7 +334,7 @@ if __name__ == '__main__':
 
     # ## Gaussian noise models
     save_path = os.path.join(data_path, GRID, 'plots_gauss')
-    gauss_model_configs = [exp_dnn_config(), exp_pann_gauss_config()]
+    gauss_model_configs = [exp_cnn_config(), exp_dnn_gauss_config(), exp_pann_gauss_config()]
     predictions, losses = compare_experiments(gauss_model_configs, data, measurement_noise=None, save_path=save_path)
     plot_heatmaps(predictions, data, complex_axis=3, save_path=save_path, show_plot=False,
                   magnitude_only=True)
