@@ -152,8 +152,9 @@ def calculate_thd(data, orders_to_evaluate):
     for state in range(num_states):
         for bus in range(num_buses):
             fundamental = np.sqrt(np.sum(data[state, bus, 0] ** 2))
-            harmonic_sum = sum(np.sqrt(np.sum(data[state, bus, o - 1] ** 2)) for o in orders_to_evaluate if o != 1)
-            thd_values[state, bus] = 100 * harmonic_sum / fundamental if fundamental else 0
+            harmonic_sum = sum(np.sum(data[state, bus, o - 1] ** 2) for o in orders_to_evaluate if o != 1)
+            harmonics_sqrt = np.sqrt(harmonic_sum)
+            thd_values[state, bus] = 100 * harmonics_sqrt / fundamental if fundamental else 0
     return thd_values
 
 

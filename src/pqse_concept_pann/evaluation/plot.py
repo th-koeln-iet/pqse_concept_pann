@@ -449,6 +449,9 @@ def plot_thd_bus(y_true, y_pred, orders_to_evaluate, show_busses, save_path=None
         axs[i].legend()
         axs[i].set_title('Busbar ' + str(bus))
 
+        # always start y-Axis at 0
+        axs[i].set_ylim(0, None)
+
     axs[-1].xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
     axs[-1].xaxis.set_major_locator(mdates.HourLocator(interval=1))
     # Set x-axis limits
