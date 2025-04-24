@@ -1,7 +1,9 @@
 # Power Quality State Estimation for Distribution Grids based on Physics-Aware Neural Networks - Harmonic State Estimation [Code Repository]
-Code for the concept paper presenting physics-aware neural networks for power quality state estimation
+Code for the concept paper presenting physics-aware neural networks for power quality state estimation.
 
-The training, test and validation data sets and model weights are available here: [Zenodo](https://zenodo.org/records/11615206)
+The full paper is available here: [DOI: 10.3390/en17215452](https://doi.org/10.3390/en17215452)
+
+The training, test and validation data sets and model weights are available here: [Zenodo](https://zenodo.org/records/13122171)
 
 ## Citing
 The paper is currently in the review process. If you use any code or data provided in this repository, please use the following citation and provide us with a copy of your contribution.
