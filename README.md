@@ -6,9 +6,9 @@ The full paper is available here: [DOI: 10.3390/en17215452](https://doi.org/10.3
 The training, test and validation data sets and model weights are available here: [Zenodo](https://zenodo.org/records/13122171)
 
 ## Citing
-The paper is currently in the review process. If you use any code or data provided in this repository, please use the following citation and provide us with a copy of your contribution.
-```Mack, P., de Koster, M., Lehnen, P., Waffenschmidt, E., & Stadler, I. (2024). Power Quality State Estimation for Distribution Grids based on Physics-Aware Neural Networks - Harmonic State Estimation (1.1.0) [Code]. Github.```
-All authors affiliated with  TH Köln - Cologned University of Applied Sciences, Germany.
+If you use any code or data provided in this repository, please use the following citation or visit the full paper link above for more citation options and provide us with a copy of your contribution.
+```Mack P, de Koster M, Lehnen P, Waffenschmidt E, Stadler I. Power Quality State Estimation for Distribution Grids Based on Physics-Aware Neural Networks—Harmonic State Estimation. Energies. 2024; 17(21):5452. https://doi.org/10.3390/en17215452 ```
+All authors affiliated with TH Köln - Cologned University of Applied Sciences, Germany.
 
 
 ## Replication of results
